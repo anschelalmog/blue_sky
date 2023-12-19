@@ -37,8 +37,19 @@ class CreateTraj(BaseTraj):
         creating velocity vectors
         assuming: straight flight, constant velocity
         """
-        vel_north = args.avg_spd * sind(args.psi) * np.ones(args.run_points)
-        vel_east = args.avg_spd * cosd(args.psi) * np.ones(args.run_points)
+        """
+        # North axis
+        ^
+        |       /
+        |  phi /
+        |     /
+        |    /
+        |   /
+        |  /
+        +----------------> East axis
+        """
+        vel_north = args.avg_spd * cosd(args.psi) * np.ones(args.run_points)
+        vel_east = args.avg_spd * sind(args.psi) * np.ones(args.run_points)
         vel_down = np.zeros(args.run_points)
 
         return vel_north, vel_east, vel_down
