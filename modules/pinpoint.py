@@ -19,7 +19,7 @@ def east_jac(psi, theta, phi):
 class PinPointCalc:
     def __init__(self, traj, map_data):
         self.dR_range = 6000
-        self.dN, self.dE, self.R, self.Lat, self.Lot, self.H_map = self.calc_pinpoint(map_data, traj)
+        self.dN, self.dE, self.R, self.Lat, self.Lon, self.H_map = self.calc_pinpoint(map_data, traj)
 
     def calc_pinpoint(self, map_data, traj):
         """

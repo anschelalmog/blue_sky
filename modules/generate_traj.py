@@ -15,8 +15,8 @@ class CreateTraj(BaseTraj):
         self.vel_North, self.vel_East, self.vel_Down = self.create_vel(args)
         self.H_asl, self.pos_North, self.pos_East, self.Lat, self.Lon, self.pos_mpd_N, self.pos_mpd_E \
             = self.create_pos(args, map_data)
-        self.H_map, self.H_traj = self.create_map(map_data)  # interpolated map according to position
-        self.H_agl = self.H_asl - self.H_traj
+        self.H_map_grid, self.H_map = self.create_map(map_data)  # interpolated map according to position
+        self.H_agl = self.H_asl - self.H_map
         self.pinpoint = PinPointCalc(self, map_data)  # calculate pinpoint coordinates
 
     @staticmethod
@@ -81,9 +81,14 @@ class CreateTraj(BaseTraj):
 
     def create_map(self, map_data):
         """
-        :param map_data: map class instance
-        :return: h_map - interpolated map in trajectory, in linear method,
-                 traj_heights - interpolated heights in place
+         Interpolate a map grid at the trajectory points and calculate the corresponding trajectory heights.
+        param:
+            map_data (MapData): An instance of a class that contains the map grid data
+        return:
+            h_map -  A 2D array of the interpolated map grid at the latitude and longitude points
+                    corresponding to the trajectory
+            traj_heights - A 1D array of interpolated heights at the trajectory's specific latitude
+                           and longitude points
         """
         interpolator = RegularGridInterpolator((map_data.Lat, map_data.Lon), map_data.map_grid)
         points = np.array(np.meshgrid(self.Lat, self.Lon)).T.reshape(-1, 2)

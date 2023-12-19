@@ -58,12 +58,11 @@ class IteratedExtendedKF:
                 # find slopes slopes and and errors
                 interpolator = interp2d(map_data.Lat, map_data.Lon, map_data.map_grid)
                 self.slopes_at_point(lat, lon, p_cov, map_data)
-                # fixme: interpolator at point return obscure value
-                # retuns measured ground and not asl
+                # fixme: retuns measured ground and not asl
                 self.est_traj.H_asl[i] = interpolator(lat, lon)
-                ic(self.est_traj.H_asl[i])
-                ic(self.params.SE[i])
-                ic(self.params.SN[i])
+                # ic(self.est_traj.H_asl[i])
+                # ic(self.params.SE[i])
+                # ic(self.params.SN[i])
 
                 H_agl_meas = meas_traj.R_pinpoint[i] * cosd(meas_traj.euler_Theta[i]) * cosd(meas_traj.euler_Phi[i])
 
@@ -148,7 +147,7 @@ class IteratedExtendedKF:
 
     def predict_covariance(self):
         """
-        Compute prior error covariance matrix
+        Compute prior Error covariance matrix
         :return: P(t|t-1) = F * P(t-1|t-1) * F^T + Q
         """
         i = self.current_state
@@ -172,12 +171,12 @@ class IteratedExtendedKF:
     def slopes_at_point(self, lat, lon, P_pre_cov, map_data):
         """
         calculate the north-south and east-west slopes of terrain at a given lat lon,
-        and estimate the error of the slope model
+        and estimate the Error of the slope model
         :param lat: Latitude at point [deg]
         :param lon: Longitude at point [deg]
-        :param P_pre_cov: A priori error covariance matrix
+        :param P_pre_cov: A priori Error covariance matrix
         :param map_data: MapLoad instance that contain the grid and it's axes
-        :return: SN, SE: slopes values , RFIT: fit error
+        :return: SN, SE: slopes values , RFIT: fit Error
         """
         i = self.current_state
         dP = 100  # distance increments in [m]
@@ -212,7 +211,7 @@ class IteratedExtendedKF:
 
         MP = (2 * idx + 1) ** 2  # number of points in the mesh grid
         In = 0
-        # calculate the error over the grid
+        # calculate the Error over the grid
         for step_E in np.arange(-idx, idx + 1):
             for step_N in np.arange(-idx, idx + 1):
                 north = int(step_N + idx)

@@ -7,16 +7,22 @@ import matplotlib.pyplot as plt
 
 class BaseTraj:
     def __init__(self, args):
+        # velocity stats
         self.vel_North = np.zeros(args.run_points)
         self.vel_East = np.zeros(args.run_points)
         self.vel_Down = np.zeros(args.run_points)
+        # position stats
         self.H_asl = np.zeros(args.run_points)
         self.H_agl = np.zeros(args.run_points)
         self.pos_North = np.zeros(args.run_points)
         self.pos_East = np.zeros(args.run_points)
         self.Lat = np.zeros(args.run_points)
         self.Lon = np.zeros(args.run_points)
-
+        # todo: complete attitude stats
+        # attitude stats
+        # self.eul_Psi = np.zeros(args.run_points)
+        # self.eul_Theta = np.zeros(args.run_points)
+        # self.eul_Phi = np.zeros(args.run_points)
 
 class IEKFParams:
     def __init__(self, args):
