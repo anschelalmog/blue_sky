@@ -24,6 +24,7 @@ class BaseTraj:
         # self.eul_Theta = np.zeros(args.run_points)
         # self.eul_Phi = np.zeros(args.run_points)
 
+
 class IEKFParams:
     def __init__(self, args):
         self.P_est = np.zeros((args.state_size, args.state_size, args.run_points))
@@ -77,5 +78,3 @@ class Errors(BaseTraj):
         self.vel_North = self.true.vel_North - self.est.est_traj.vel_North
         self.vel_East = self.true.vel_East - self.est.est_traj.vel_East
         self.vel_alt = self.true.vel_Down - self.est.est_traj.vel_Down
-
-

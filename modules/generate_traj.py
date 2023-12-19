@@ -25,6 +25,24 @@ class CreateTraj(BaseTraj):
         creating euler angels vectors
         assuming: straight flight
         """
+        #                  Z
+        #                  ^
+        #                  |
+        #                  |
+        #                  |     /|  Roll (φ)
+        #                  |    / |
+        #                  |   /  |
+        #                  |  /   |
+        #                  | /    |
+        #                  |/     |
+        #                  +------|---------> Y
+        #                 / \     |
+        #                /   \    |
+        #               /     \   | Pitch (θ)
+        #              /       \  |
+        #             /         \ |
+        #            /           \|
+        #            X                 v Yaw (ψ)
         psi_vec = args.psi * np.ones(args.run_points)
         theta_vec = args.theta * np.ones(args.run_points)
         phi_vec = args.phi * np.ones(args.run_points)
@@ -39,14 +57,15 @@ class CreateTraj(BaseTraj):
         """
         """
         # North axis
-        ^
-        |       /
-        |  phi /
-        |     /
-        |    /
-        |   /
-        |  /
-        +----------------> East axis
+                ^
+                |       /
+            cos |  phi /
+                |     /
+                |    /
+                |   /
+                |  /
+                +----------------> East axis
+                    sin
         """
         vel_north = args.avg_spd * cosd(args.psi) * np.ones(args.run_points)
         vel_east = args.avg_spd * sind(args.psi) * np.ones(args.run_points)
@@ -102,6 +121,7 @@ class NoiseTraj(BaseTraj):
         this class noising the trajectory
         the noise level declared in the input
     """
+
     def __init__(self, args, traj):
         super().__init__(args)
         self.run_length = args.run_points

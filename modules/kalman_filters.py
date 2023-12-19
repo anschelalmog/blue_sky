@@ -4,7 +4,7 @@ from .base_classes import BaseTraj, IEKFParams
 from scipy.interpolate import interp2d
 from tqdm import tqdm
 from icecream import ic
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 class IteratedExtendedKF:
     """
@@ -58,6 +58,7 @@ class IteratedExtendedKF:
                 # find slopes slopes and and errors
                 interpolator = interp2d(map_data.Lat, map_data.Lon, map_data.map_grid)
                 self.slopes_at_point(lat, lon, p_cov, map_data)
+                # self.calc_slopes(lat, lon, p_cov, map_data)
                 # fixme: retuns measured ground and not asl
                 self.est_traj.H_asl[i] = interpolator(lat, lon)
                 # ic(self.est_traj.H_asl[i])
@@ -67,6 +68,7 @@ class IteratedExtendedKF:
                 H_agl_meas = meas_traj.R_pinpoint[i] * cosd(meas_traj.euler_Theta[i]) * cosd(meas_traj.euler_Phi[i])
 
                 # Noise calculation
+                # calc noise
                 self.params.Rc[i] = self.rc(H_agl_meas)
                 self.params.R[i] = self.params.Rc[i] + self.params.Rfit[i]
 
@@ -79,10 +81,12 @@ class IteratedExtendedKF:
                 # Measurement Model
                 # estimated height above sea - measured height above sea - measured map height
                 self.params.Z[i] = self.est_traj.H_asl[i] - H_agl_meas - meas_traj.H_map_pinpoint[i]
+                # ic(i)
+                # ic(self.params.Z[i])
 
                 self.params.P_est[:, :, i] = self.estimate_covariance()
                 self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]
-                ic(self.est_traj.H_asl[i])
+                # ic(self.est_traj.H_asl[i])
 
                 if self.converged():
                     break
@@ -247,7 +251,6 @@ class IteratedExtendedKF:
     def rc(self, H_agl_meas):
         return 100 + 125 * (H_agl_meas > 200) + 175 * (H_agl_meas > 760) + 600 * (H_agl_meas > 1000) + 500 * (
                 H_agl_meas > 5000) + 1500 * (H_agl_meas > 7000)
-
 
 class UnscentedKF:
     # def __init__(self, args, meas_traj, map_data):
