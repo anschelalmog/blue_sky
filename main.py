@@ -43,7 +43,7 @@ def parse_args():
     parser.add_argument('--map_level', type=int, default=1, help='Map Level')
 
     # Flight
-    parser.add_argument('--psi', type=int, default=0, help='Yaw at start, in [deg]')
+    parser.add_argument('--psi', type=int, default=45, help='Yaw at start, in [deg]')
     # parser.add_argument('--psi', type=int, default=45, help='Yaw at start, in [deg]')
     parser.add_argument('--theta', type=int, default=0, help='Pitch at start, in [deg]')
     parser.add_argument('--phi', type=int, default=0, help='Roll at start, in [deg]')

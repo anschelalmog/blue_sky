@@ -6,11 +6,13 @@ from tqdm import tqdm
 from icecream import ic
 import matplotlib.pyplot as plt
 
+
 class IteratedExtendedKF:
     """
         simulating an iterated extended kalman filter
         the number of loops and convergence rate declared in input
     """
+
     def __init__(self, args, map_data, meas_traj):
         self.delT = args.time_res
         self.epsilon = args.iekf_conv_rate
@@ -59,7 +61,7 @@ class IteratedExtendedKF:
                 interpolator = interp2d(map_data.Lat, map_data.Lon, map_data.map_grid)
                 self.slopes_at_point(lat, lon, p_cov, map_data)
                 # self.calc_slopes(lat, lon, p_cov, map_data)
-                # fixme: retuns measured ground and not asl
+                # fixme: returns measured ground and not asl
                 self.est_traj.H_asl[i] = interpolator(lat, lon)
                 # ic(self.est_traj.H_asl[i])
                 # ic(self.params.SE[i])
@@ -164,7 +166,8 @@ class IteratedExtendedKF:
         :return: updating class
         """
         i = self.current_state
-        self.est_traj.vel_North[i] = self.est_traj.vel_North[i - 1] + (meas_traj.vel_North[i] - meas_traj.vel_North[i - 1])
+        # self.est_traj.vel_North[i] = self.est_traj.vel_North[i - 1] + (
+        #             meas_traj.vel_North[i] - meas_traj.vel_North[i - 1])
         self.est_traj.vel_East[i] = self.est_traj.vel_East[i - 1] + (meas_traj.vel_East[i] - meas_traj.vel_East[i - 1])
         self.est_traj.vel_Down[i] = self.est_traj.vel_Down[i - 1] + (meas_traj.vel_Down[i] - meas_traj.vel_Down[i - 1])
 
@@ -252,6 +255,7 @@ class IteratedExtendedKF:
         return 100 + 125 * (H_agl_meas > 200) + 175 * (H_agl_meas > 760) + 600 * (H_agl_meas > 1000) + 500 * (
                 H_agl_meas > 5000) + 1500 * (H_agl_meas > 7000)
 
+
 class UnscentedKF:
     # def __init__(self, args, meas_traj, map_data):
     def __init__(self):
@@ -259,7 +263,7 @@ class UnscentedKF:
     #     self.delT = args.time_res
     #     self.max_iter = args.iekf_iters
     #     self.est_traj = BaseTraj(args)
-    #     self.params = UKFParams(args)
+    #     se   clf.params = UKFParams(args)
     #
     #     # set params
     #     self.initialize_params(args, meas_traj)

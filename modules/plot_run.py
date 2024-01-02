@@ -19,7 +19,6 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         ax.set_ylabel('Latitude [deg]')
         ax.set_zlabel('Height [m]')
 
-
         # Ground Truth
         if true_traj is not None:
             ax.plot3D(true_traj.Lon, true_traj.Lat, true_traj.H_asl, linewidth=4, color='r', label='Ground Truth')
@@ -55,7 +54,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[0].set_title('North Position Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Err', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[0].legend(['Err', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         # Error in East Position
         axs[1].plot(args.time_vec, errors.pos_East, '-r', linewidth=1)
@@ -64,7 +63,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Err', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[1].legend(['Err', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         # save fig
         plt.savefig(os.path.join(args.results_folder, 'position_errors.png'))
@@ -83,7 +82,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[0].set_title('North Velocity Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Error', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[0].legend(['Error', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         # Error in East Velocity
         axs[1].plot(args.time_vec, errors.vel_East, '-r', linewidth=1)
@@ -92,7 +91,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Error', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[1].legend(['Error', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         # Error in Down Velocity
         axs[2].plot(args.time_vec, errors.vel_Down, '-r', linewidth=1)
@@ -101,7 +100,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[2].set_title('East Position Error [m]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
-        axs[2].legend(['Error', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[2].legend(['Error', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         plt.tight_layout()
 
@@ -126,7 +125,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         plt.title('Altitude Err [m]')
         plt.xlabel('Time [sec]')
         plt.grid(True)
-        plt.legend(['Error', '+$\sigma$', '-$\sigma$', 'mean', 'Z'], loc='best')
+        plt.legend(['Error', '+$\\sigma$', '-$\\sigma$', 'mean', 'Z'], loc='best')
 
         # save fig
         plt.savefig(os.path.join(args.results_folder, 'altitude_errors.png'))
@@ -145,7 +144,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[0].set_title('Euler Psi Error [deg]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Error', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[0].legend(['Error', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         # Error in euler theta
         axs[1].plot(args.time_vec, errors.eul_Theta, '-r', linewidth=1)
@@ -154,7 +153,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[1].set_title('Euler Theta Error [deg]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Error', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[1].legend(['Error', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         # Error in euler phi
         axs[2].plot(args.time_vec, errors.eul_phi, '-r', linewidth=1)
@@ -163,7 +162,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[2].set_title('East Position Error [m]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
-        axs[2].legend(['Error', '+$\sigma$', '-$\sigma$'], loc='best')
+        axs[2].legend(['Error', '+$\\sigma$', '-$\\sigma$'], loc='best')
 
         plt.tight_layout()
 
@@ -192,7 +191,7 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Rc - penalty on heig', 'Rfit', 'R'], loc='best')
+        axs[1].legend(['Rc - penalty on height', 'Rfit', 'R'], loc='best')
 
         # save fig
         plt.savefig(os.path.join(args.results_folder, 'model_errors.png'))
@@ -247,4 +246,3 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
 
         # show plot
         plt.show()
-
