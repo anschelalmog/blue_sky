@@ -92,7 +92,7 @@ def parse_args():
     args.kf_Q = np.power(np.diag([0, 0, 0, 1, 1, 1]), 1e-6)
 
     """
-    #  apply errors by hand
+    #  apply errors
     args.err_vel, args.err_pos, args.err_alt, args.err_euler, args.err_baro_noise, err_baro_bias = 
     10, 500, 100, 0.01, 10, 30
     """
@@ -145,11 +145,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# TODO: check covariances update
-# TODO: add a variable for est.map = est.asl - est.agl
-# TODO: why dx[2] is 0?
-# TODO: check Z, vary the model
-
-#
-# remark: when using flat surface all the kalman gains are 0, as formula

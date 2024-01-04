@@ -18,7 +18,7 @@ class BaseTraj:
         self.pos_East = np.zeros(args.run_points)
         self.Lat = np.zeros(args.run_points)
         self.Lon = np.zeros(args.run_points)
-        # todo: complete attitude stats
+
         # attitude stats
         # self.eul_Psi = np.zeros(args.run_points)
         # self.eul_Theta = np.zeros(args.run_points)
@@ -72,8 +72,8 @@ class Errors(BaseTraj):
         setattr(self, 'cov_pos_north_est', estimation_results.params.P_est[1, 2, :])
         setattr(self, 'cov_pos_east_north', estimation_results.params.P_est[2, 1, :])
 
-        self.pos_North = self.true.pos_North - self.est.est_traj.pos_North
-        self.pos_East = self.true.pos_East - self.est.est_traj.pos_East
+        self.pos_North = self.meas.pos_North - self.est.est_traj.pos_North
+        self.pos_East = self.meas.pos_East - self.est.est_traj.pos_East
         self.pos_alt = self.true.H_asl - self.est.est_traj.H_asl
         self.vel_North = self.true.vel_North - self.est.est_traj.vel_North
         self.vel_East = self.true.vel_East - self.est.est_traj.vel_East
