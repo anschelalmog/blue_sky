@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import datetime
+
 from modules.base_traj import BaseTraj
 
 
@@ -286,3 +288,50 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
 
         # show plot
         plt.show()
+
+    return errors, covs
+
+
+
+def print_log(args, errors, covs, kf_paramas, plots):
+    # Create a log file in the Results folder
+    results_folder = args.results_folder
+    if not os.path.exists(results_folder):
+        os.makedirs(results_folder)
+
+    current_time = datetime.datetime.now()
+    formatted_time = current_time.strftime('%d%m%Y_%H%M')
+    log_file_name = f'log_{formatted_time}.txt'
+    log_file_path = os.path.join(results_folder, log_file_name)
+
+    with open(log_file_path, 'w') as log_file:
+        # Write header information
+        log_file.write("========================================\n")
+        log_file.write("             Trajectory Run Log         \n")
+        log_file.write("========================================\n")
+        log_file.write(f"Date and Time of Run: {datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}\n")
+        log_file.write("----------------------------------------\n")
+        # log_file.write("Run Configuration:\n")
+        # log_file.write(f"{args}\n")
+        # log_file.write("----------------------------------------\n\n")
+
+        if args.noise_type == 'normal' or args.noise_type == 'uniform':
+            log_file.write(f"noising the trajectory with {args.noise_type} noise\n")
+        else:  # no noise
+            log_file.write("trajectory with no noise\n")
+        est_traj = errors
+        covariance = covs
+
+        for key in ['north', 'east', 'down']:
+            pos_error_within_cov = np.mean(np.abs(est_traj.pos[key]) <= np.sqrt(covariance.pos[key])) * 100
+            vel_error_within_cov = np.mean(np.abs(est_traj.vel[key]) <= np.sqrt(covariance.vel[key])) * 100
+            log_file.write(
+                f"Percentage of Position {key.capitalize()} Error within Covariance Limit: {pos_error_within_cov:.2f}%\n")
+            log_file.write(
+                f"Percentage of Velocity {key.capitalize()} Error within Covariance Limit: {vel_error_within_cov:.2f}%\n")
+
+        # Additional statistics - RMSE for position and velocity
+        rmse_pos = np.sqrt(np.mean(np.square([est_traj.pos[key] for key in ['north', 'east', 'down']])))
+        rmse_vel = np.sqrt(np.mean(np.square([est_traj.vel[key] for key in ['north', 'east', 'down']])))
+        log_file.write(f"RMSE of Position: {rmse_pos:.2f}\n")
+        log_file.write(f"RMSE of Velocity: {rmse_vel:.2f}\n")
