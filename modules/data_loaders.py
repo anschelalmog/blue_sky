@@ -1,18 +1,13 @@
-from modules.base_classes import BaseTraj
-from .utils import get_mpd, cosd, sind
 import numpy as np
+import matplotlib.pyplot as plt
 import scipy.io as sp
 import os
-import matplotlib.pyplot as plt
+
+from modules.utils import get_mpd, cosd, sind
+from modules.base_traj import BaseTraj
 
 
-# from pyulog import ULog
-
-
-def generate_map(_map, flat=False):
-    flat = True
-
-
+def generate_map(_map, flat=True, to_plot=True):
     tile_size = _map.shape[0]
     if flat:
         height_map = np.full((tile_size, tile_size), 1000)
@@ -45,96 +40,111 @@ def generate_map(_map, flat=False):
         y, x = np.indices((rows, cols))
         gaussian = amplitude * np.exp(-((x - center_col) ** 2 + (y - center_row) ** 2) / (2 * std_dev ** 2))
 
-        height_map = height_map + gaussian
+        terrain_tile = height_map + gaussian
         ################
         terrain_normalized = (terrain_tile - terrain_tile.min()) / (terrain_tile.max() - terrain_tile.min())
 
         height_map = (terrain_normalized * 1734).astype(int)
 
-    # Plot
-    plt.figure()
-    plt.imshow(height_map, cmap='terrain')
-    plt.title('Generated Height Map')
-    plt.tight_layout()
-    plt.show()
+    if to_plot:
+        plt.figure()
+        plt.imshow(height_map, cmap='terrain')
+        plt.title('Generated Height Map')
+        plt.tight_layout()
+        plt.show()
 
     return height_map
 
 
-class LoadMap:
+class Map:
     def __init__(self, args):
-        self.lat_bounds, self.lon_bounds, self.pos_final_lat, self.pos_final_lon = self.get_map_bounds(args)
-        self.Lat, self.Lon, self.North, self.East, self.mpd_N, self.mpd_E = self.get_map_axis(args)
-        self.map_grid = self.get_map(args)
+        self.args = args
+        self.lat_bounds = None
+        self.lon_bounds = None
+        self.final_pos = None
+        self.ax_lat = None
+        self.ax_lon = None
+        self.ax_north = None
+        self.ax_east = None
+        self.mpd_north = None
+        self.mpd_east = None
+        self.grid = None
 
-    @staticmethod
-    def get_map_bounds(args):
-        north_to_lat, east_to_lon = get_mpd(args.lat)
+    def load(self):
+        self._set_map_boundaries()
+        self._set_axis()
+        self._create_grid()
+        return self
 
-        pos_final_lat = args.lat + args.avg_spd / north_to_lat * cosd(args.psi) * args.time_end
-        pos_final_lon = args.lon + args.avg_spd / east_to_lon * sind(args.psi) * args.time_end
+    def _set_map_boundaries(self):
+        mpd_N, mpd_E = get_mpd(self.args.init_lat)
 
-        init_lat = np.floor(np.min([args.lat, pos_final_lat]))
-        init_lon = np.floor(np.min([args.lon, pos_final_lon]))
-        final_lat = np.ceil(np.max([args.lat, pos_final_lat]))
-        final_lon = np.ceil(np.max([args.lon, pos_final_lon]))
+        pos_final_lat = self.args.init_lat + self.args.avg_spd / mpd_N * sind(self.args.psi) * self.args.time_end
+        pos_final_lon = self.args.init_lon + self.args.avg_spd / mpd_E * cosd(self.args.psi) * self.args.time_end
 
-        return [init_lat, final_lat], [init_lon, final_lon], pos_final_lat, pos_final_lon
+        init_lat = np.floor(np.min([self.args.init_lat, pos_final_lat]))
+        final_lat = np.ceil(np.max([self.args.init_lat, pos_final_lat]))
+        init_lon = np.floor(np.min([self.args.init_lon, pos_final_lon]))
+        final_lon = np.ceil(np.max([self.args.init_lon, pos_final_lon]))
 
-    def get_map_axis(self, args):
+        self.lat_bounds = [init_lat, final_lat]
+        self.lon_bounds = [init_lon, final_lon]
+        self.final_pos = [pos_final_lat, pos_final_lon]
+
+    def _set_axis(self):
+        rate = self.args.map_res / 3600
         init_lat, final_lat = self.lat_bounds[0], self.lat_bounds[1]
         init_lon, final_lon = self.lon_bounds[0], self.lon_bounds[1]
 
-        rate = args.map_res / 3600
-
         map_lat = np.arange(init_lat, final_lat, rate)
-        map_lat = np.append(map_lat, map_lat[-1] + rate)
+        self.ax_lat = np.append(map_lat, map_lat[-1] + rate)
         map_lon = np.arange(init_lon, final_lon, rate)
-        map_lon = np.append(map_lon, map_lon[-1] + rate)
+        self.ax_lon = np.append(map_lon, map_lon[-1] + rate)
 
-        north_to_lat, east_to_lon = get_mpd(map_lat)
+        self.mpd_north, self.mpd_east = get_mpd(self.ax_lat)
 
-        map_north = map_lat * north_to_lat
-        map_east = map_lon * east_to_lon
+        self.ax_north = self.ax_lat * self.mpd_north
+        self.ax_east = self.ax_lon * self.mpd_east
 
-        return map_lat, map_lon, map_north, map_east, north_to_lat, east_to_lon
+    def _create_grid(self):
+        # Initialize bounds and tile settings
+        min_lat_int, max_lat_int = map(int, (np.floor(self.lat_bounds[0]), np.ceil(self.lat_bounds[1])))
+        min_lon_int, max_lon_int = map(int, (np.floor(self.lon_bounds[0]), np.ceil(self.lon_bounds[1])))
+        tile_length, map_level, ext = (1200, 1, 'dt1') if self.args.map_res == 3 else (3600, 3, 'dt2')
+        ext = 'mat'
+        # Create an empty map grid
+        map_full_tiles = np.zeros(
+            [(max_lat_int - min_lat_int) * tile_length + 1, (max_lon_int - min_lon_int) * tile_length + 1])
 
-    def get_map(self, args):
-        # Load map data from specified tiles.
-        min_lat_int, max_lat_int = int(np.floor(self.lat_bounds[0])), int(np.ceil(self.lat_bounds[1]))
-        min_lon_int, max_lon_int = int(np.floor(self.lon_bounds[0])), int(np.ceil(self.lon_bounds[1]))
+        # Load map tiles and assemble the full map
+        for e in range(min_lon_int, max_lon_int):
+            for n in range(min_lat_int, max_lat_int):
+                tile_path = os.path.join(os.getcwd(), self.args.maps_dir, f'Level{map_level}', 'DTED', f'E0{e}',
+                                         f'n{n}.{ext}')
+                tile_load = self._load_tile(tile_path, tile_length)
 
-        # Determine tile size and format based on map resolution.
-        tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
-
-        # load map
-        n_north = max_lat_int - min_lat_int
-        n_east = max_lon_int - min_lon_int
-        map_full_tiles = np.zeros([n_north * tile_length + 1, n_east * tile_length + 1])
-        for e in np.arange(min_lon_int, max_lon_int):
-            for n in np.arange(min_lat_int, max_lat_int):
-                tile_path = os.path.join(args.map_path, f'Level{map_level}', f'E0{e}', f'n{n}.mat')
-                try:
-                    tile_load = sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
-                except FileNotFoundError:
-                    tile_load = None
-                    print(f'file not found: {tile_path}')
-
+                # Define indices for placing the tile in the full map
                 x_idx = slice((n - min_lat_int) * tile_length, (n - min_lat_int + 1) * tile_length + 1)
                 y_idx = slice((e - min_lon_int) * tile_length, (e - min_lon_int + 1) * tile_length + 1)
 
                 map_full_tiles[x_idx, y_idx] = tile_load
 
-                if np.all(map_full_tiles == 0) or np.all(np.isnan(map_full_tiles)):
-                    map_full_tiles = generate_map(map_full_tiles)
+        self._validate_map(map_full_tiles)
 
-        return map_full_tiles
+    @staticmethod
+    def _load_tile(tile_path, tile_length):
+        try:
+            return sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
+        except FileNotFoundError:
+            print(f'file not found: {tile_path}')
+            return None
+
+    def _validate_map(self, map_full_tiles):
+        if np.all(map_full_tiles == 0) or np.all(np.isnan(map_full_tiles)):
+            self.grid = generate_map(map_full_tiles)
+        else:
+            self.grid = map_full_tiles
 
 
 class TrajFromFile(BaseTraj):
-    def __init__(self, args):
-        super().__init__(args)
-        self.read_logs()
-
-    def read_logs(self):
-        pass
+    pass

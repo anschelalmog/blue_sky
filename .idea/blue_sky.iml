@@ -2,9 +2,10 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/archive" />
       <excludeFolder url="file://$MODULE_DIR$/ref" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.11 (project_B)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="deep_learning (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>

@@ -1,10 +1,49 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from modules.base_traj import BaseTraj
 
 
 # noinspection DuplicatedCode
-def plot_results(args, map_data, true_traj, measured, est, errors, plots):
+
+
+class Errors(BaseTraj):
+    def __init__(self, used_traj, est_traj):
+        super().__init__(used_traj.run_points)
+        self.pos.north = used_traj.pos.north - est_traj.pos.lat * used_traj.mpd_north
+        self.pos.east = used_traj.pos.east - est_traj.pos.lon * used_traj.mpd_east
+        self.pos.h_asl = used_traj.pos.h_asl - est_traj.pos.h_asl
+        #
+        self.vel.north = used_traj.vel.north - est_traj.vel.north
+        self.vel.east = used_traj.vel.east - est_traj.vel.east
+        self.vel.down = used_traj.vel.down - est_traj.vel.down
+        #
+        # self.euler.psi = used_traj.euler.psi - est_traj.euler.psi
+        # self.euler.theta = used_traj.euler.theta - est_traj.euler.theta
+        # self.euler.phi = used_traj.euler.phi - est_traj.euler.phi
+
+
+class Covariances(BaseTraj):
+    def __init__(self, covariances):
+        super().__init__(covariances.shape[2])
+        self.pos.north = np.sqrt(covariances[0, 0, :])
+        self.pos.east = np.sqrt(covariances[1, 1, :])
+        self.pos.h_asl = np.sqrt(covariances[2, 2, :])
+        #
+        self.vel.north = np.sqrt(covariances[3, 3, :])
+        self.vel.east = np.sqrt(covariances[4, 4, :])
+        self.vel.down = np.sqrt(covariances[5, 5, :])
+        #
+        # self.euler.psi = P_est[6, 6, :]
+        # self.euler.theta = P_est[7, 7, :]
+        # self.euler.phi = P_est[8, 8, :]
+
+
+def plot_results(args, map_data, ground_truth, measurements, estimation_resluts, plots):
+    used_traj = ground_truth if ground_truth is not None else measurements
+    errors = Errors(used_traj, estimation_resluts.traj)
+    covs = Covariances(estimation_resluts.params.P_est)
+
     os.makedirs('Results', exist_ok=True)
     repr(plots)
 
@@ -12,24 +51,26 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         fig = plt.figure('results_on_map', figsize=(10, 12))
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title('MAP', fontsize=24, fontweight='bold')
-        X, Y = np.meshgrid(map_data.Lon, map_data.Lat)
-        ax.plot_surface(X, Y, map_data.map_grid, cmap='bone')
+        X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
+        ax.plot_surface(X, Y, map_data.grid, cmap='bone')
         plt.grid(False)
         ax.set_xlabel('Longitude [deg]')
         ax.set_ylabel('Latitude [deg]')
         ax.set_zlabel('Height [m]')
 
         # Ground Truth
-        if true_traj is not None:
-            ax.plot3D(true_traj.Lon, true_traj.Lat, true_traj.H_asl, linewidth=4, color='r', label='Ground Truth')
+        if ground_truth is not None:
+            ax.plot3D(ground_truth.pos.lon, ground_truth.pos.lat, ground_truth.pos.h_asl, linewidth=4, color='r',
+                      label='Ground Truth')
 
         # Measured
         idx = 10  # every 10th element
-        ax.scatter3D(measured.Lon[::idx], measured.Lat[::idx], measured.H_asl[::idx],
+        ax.scatter3D(measurements.pos.lon[::idx], measurements.pos.lat[::idx], measurements.pos.h_asl[::idx],
                      marker='x', color='black', label='Measured')
 
         # Estimated
-        ax.plot3D(est.est_traj.Lon, est.est_traj.Lat, est.est_traj.H_asl, linewidth=4, color='b', label='Estimated')
+        ax.plot3D(estimation_resluts.traj.pos.lon, estimation_resluts.traj.pos.lat, estimation_resluts.traj.pos.h_asl,
+                  linewidth=4, color='b', label='Estimated')
 
         # Legend
         lgd = ax.legend(loc='best')
@@ -48,15 +89,21 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         fig.suptitle('Position Errors', fontsize=24, fontweight='bold')
 
         # Error in North position
-        axs[0].plot(args.time_vec, errors.pos_North, '-r', linewidth=1)
-        axs[0].plot(args.time_vec, np.sqrt(errors.cov_pos_north), '--b', linewidth=1)
-        axs[0].plot(args.time_vec, -np.sqrt(errors.cov_pos_north), '--b', linewidth=1)
+        axs[0].plot(args.time_vec, errors.pos.north, '-r', linewidth=1)
+        axs[0].plot(args.time_vec, covs.pos.north, '--b', linewidth=1)
+        axs[0].plot(args.time_vec, -covs.pos.north, '--b', linewidth=1)
         axs[0].set_title('North Position Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
         axs[0].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Error in East Position
+        axs[1].plot(args.time_vec, errors.pos.east, '-r', linewidth=1)
+        axs[1].plot(args.time_vec, covs.pos.east, '--b', linewidth=1)
+        axs[1].plot(args.time_vec, -covs.pos.east, '--b', linewidth=1)
+        axs[1].set_title('North Position Error [m]')
+        axs[1].set_xlabel('Time [sec]')
+        axs[1].grid(True)
         axs[1].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
         # save fig
         plt.savefig(os.path.join(args.results_folder, 'position_errors.png'))
@@ -69,27 +116,27 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         fig.suptitle('Velocity Errors', fontsize=24, fontweight='bold')
 
         # Error in North Velocity
-        axs[0].plot(args.time_vec, errors.vel_North, '-r', linewidth=1)
-        axs[0].plot(args.time_vec, np.sqrt(errors.cov_vel_north), '--b', linewidth=1)
-        axs[0].plot(args.time_vec, -np.sqrt(errors.cov_vel_north), '--b', linewidth=1)
+        axs[0].plot(args.time_vec, errors.vel.north, '-r', linewidth=1)
+        axs[0].plot(args.time_vec, covs.vel.north, '--b', linewidth=1)
+        axs[0].plot(args.time_vec, -covs.vel.north, '--b', linewidth=1)
         axs[0].set_title('North Velocity Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
         axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Error in East Velocity
-        axs[1].plot(args.time_vec, errors.vel_East, '-r', linewidth=1)
-        axs[1].plot(args.time_vec, np.sqrt(errors.cov_vel_east), '--b', linewidth=1)
-        axs[1].plot(args.time_vec, -np.sqrt(errors.cov_vel_east), '--b', linewidth=1)
+        axs[1].plot(args.time_vec, errors.vel.east, '-r', linewidth=1)
+        axs[1].plot(args.time_vec, covs.vel.east, '--b', linewidth=1)
+        axs[1].plot(args.time_vec, -covs.vel.east, '--b', linewidth=1)
         axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Error in Down Velocity
-        axs[2].plot(args.time_vec, errors.vel_Down, '-r', linewidth=1)
-        axs[2].plot(args.time_vec, np.sqrt(errors.cov_vel_down), '--b', linewidth=1)
-        axs[2].plot(args.time_vec, -np.sqrt(errors.cov_vel_down), '--b', linewidth=1)
+        axs[2].plot(args.time_vec, errors.vel.down, '-r', linewidth=1)
+        axs[2].plot(args.time_vec, covs.vel.down, '--b', linewidth=1)
+        axs[2].plot(args.time_vec, -covs.vel.down, '--b', linewidth=1)
         axs[2].set_title('East Position Error [m]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
@@ -106,13 +153,13 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         plt.figure('Altitude Errors', figsize=(10, 12))
         plt.suptitle('Altitude Errors', fontsize=24, fontweight='bold')
 
-        plt.plot(args.time_vec, errors.pos_alt, 'r', linewidth=1)
-        plt.plot(args.time_vec, np.sqrt(errors.cov_pos_down), '--b', linewidth=1)
-        plt.plot(args.time_vec, -np.sqrt(errors.cov_pos_down), '--b', linewidth=1)
+        plt.plot(args.time_vec, errors.pos.h_asl, 'r', linewidth=1)
+        plt.plot(args.time_vec, covs.pos.h_asl, '--b', linewidth=1)
+        plt.plot(args.time_vec, -covs.pos.h_asl, '--b', linewidth=1)
 
-        mean_err_alt = np.mean(errors.pos_alt)
-        plt.plot(args.time_vec, mean_err_alt * np.ones(len(errors.pos_alt)), '*-k')
-        plt.plot(args.time_vec, est.params.Z, '-.g')
+        mean_err_alt = np.mean(errors.pos.h_asl)
+        plt.plot(args.time_vec, mean_err_alt * np.ones(len(errors.pos.h_asl)), '*-k')
+        plt.plot(args.time_vec, estimation_resluts.params.Z, '-.g')
 
         # legend
         plt.title('Altitude Err [m]')
@@ -131,27 +178,27 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         fig.suptitle('Attitude Errors', fontsize=24, fontweight='bold')
 
         # Error in euler psi
-        axs[0].plot(args.time_vec, errors.eul_psi, '-r', linewidth=1)
-        axs[0].plot(args.time_vec, np.sqrt(errors.cov_eul_psi), '--b', linewidth=1)
-        axs[0].plot(args.time_vec, -np.sqrt(errors.cov_eul_psi), '--b', linewidth=1)
+        axs[0].plot(args.time_vec, errors.euler.psi, '-r', linewidth=1)
+        axs[0].plot(args.time_vec, covs.euler.psi, '--b', linewidth=1)
+        axs[0].plot(args.time_vec, -covs.euler.psi, '--b', linewidth=1)
         axs[0].set_title('Euler Psi Error [deg]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
         axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Error in euler theta
-        axs[1].plot(args.time_vec, errors.eul_Theta, '-r', linewidth=1)
-        axs[1].plot(args.time_vec, np.sqrt(errors.cov_eul_theta), '--b', linewidth=1)
-        axs[1].plot(args.time_vec, -np.sqrt(errors.cov_eul_theta), '--b', linewidth=1)
+        axs[1].plot(args.time_vec, errors.euler.theta, '-r', linewidth=1)
+        axs[1].plot(args.time_vec, covs.euler.theta, '--b', linewidth=1)
+        axs[1].plot(args.time_vec, -covs.euler.theta, '--b', linewidth=1)
         axs[1].set_title('Euler Theta Error [deg]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Error in euler phi
-        axs[2].plot(args.time_vec, errors.eul_phi, '-r', linewidth=1)
-        axs[2].plot(args.time_vec, np.sqrt(errors.eul_phi), '--b', linewidth=1)
-        axs[2].plot(args.time_vec, -np.sqrt(errors.eul_phi), '--b', linewidth=1)
+        axs[2].plot(args.time_vec, errors.euler.phi, '-r', linewidth=1)
+        axs[2].plot(args.time_vec, covs.euler.phi, '--b', linewidth=1)
+        axs[2].plot(args.time_vec, -covs.euler.phi, '--b', linewidth=1)
         axs[2].set_title('East Position Error [m]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
@@ -170,17 +217,17 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         fig.suptitle('Model Errors', fontsize=24, fontweight='bold')
 
         axs[0].set_title('Measurement mismatch and Error correction')
-        axs[0].plot(args.time_vec, est.params.dX[2, :], '-r')
-        axs[0].plot(args.time_vec, est.params.Z, '--b')
+        axs[0].plot(args.time_vec, estimation_resluts.params.Z, '--b')
+        axs[0].plot(args.time_vec, estimation_resluts.params.dX[2, :], '-r')
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
+        axs[0].set_ylim(-1, 1.1)
         axs[0].legend(['Error', 'Mismatch'], loc='best')
 
         axs[1].set_title('Process Noise, R and Rc')
-        axs[1].plot(args.time_vec, est.params.Rc, '-r')
-        axs[1].plot(args.time_vec, est.params.Rfit, '--b')
-        # axs[1].scatter(args.time_vec[::10], est.params.R[::10], '*g')
+        axs[1].plot(args.time_vec, estimation_resluts.params.Rc, '-r')
+        axs[1].plot(args.time_vec, estimation_resluts.params.Rfit, '--b')
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[1].grid(True)
@@ -208,11 +255,11 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         for i, title in enumerate(gains):
             row = i // 3
             col = i % 3
-
-            axs[row, col].plot(args.time_vec, est.params.K[i, :], linewidth=1)
+            axs[row, col].set_ylim(-1, 1.1)
+            axs[row, col].grid(True)
+            axs[row, col].plot(args.time_vec, estimation_resluts.params.K[i, :], linewidth=1)
             axs[row, col].set_title(title)
             axs[row, col].set_xlabel('Time [sec]')
-            axs[row, col].grid(True)
 
         plt.tight_layout()
         # save fig
@@ -222,11 +269,10 @@ def plot_results(args, map_data, true_traj, measured, est, errors, plots):
         # plot show
         plt.show()
     if plots['map elevation']:
-
         fig = plt.figure('Map  - Ground Elevation at PinPoint', figsize=(10, 12))
         fig.suptitle('Ground Elevation at PinPoint', fontsize=24, fontweight='bold')
-        plt.plot(args.time_vec, true_traj.pinpoint.H_map, 'r')
-        plt.plot(args.time_vec, est.est_traj.H_asl - est.est_traj.H_agl, '--b')
+        plt.plot(args.time_vec, ground_truth.pinpoint.h_map, 'r')
+        plt.plot(args.time_vec, estimation_resluts.traj.pos.h_asl - estimation_resluts.traj.pos.h_agl, '--b')
         plt.title('Map Altitude [m]')
         plt.xlabel('Time [sec]')
         plt.grid(True)
