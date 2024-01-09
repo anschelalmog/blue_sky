@@ -26,6 +26,7 @@ class BaseEuler:
 
 class BaseTraj:
     def __init__(self, length):
+        self.pinpoint = None
         self.pos = BasePos(length)
         self.vel = BaseVel(length)
         self.euler = BaseEuler(length)

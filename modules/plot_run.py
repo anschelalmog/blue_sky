@@ -39,10 +39,10 @@ class Covariances(BaseTraj):
         # self.euler.phi = P_est[8, 8, :]
 
 
-def plot_results(args, map_data, ground_truth, measurements, estimation_resluts, plots):
+def plot_results(args, map_data, ground_truth, measurements, estimation_results, plots):
     used_traj = ground_truth if ground_truth is not None else measurements
-    errors = Errors(used_traj, estimation_resluts.traj)
-    covs = Covariances(estimation_resluts.params.P_est)
+    errors = Errors(used_traj, estimation_results.traj)
+    covs = Covariances(estimation_results.params.P_est)
 
     os.makedirs('Results', exist_ok=True)
     repr(plots)
@@ -69,7 +69,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_resluts,
                      marker='x', color='black', label='Measured')
 
         # Estimated
-        ax.plot3D(estimation_resluts.traj.pos.lon, estimation_resluts.traj.pos.lat, estimation_resluts.traj.pos.h_asl,
+        ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
                   linewidth=4, color='b', label='Estimated')
 
         # Legend
@@ -159,7 +159,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_resluts,
 
         mean_err_alt = np.mean(errors.pos.h_asl)
         plt.plot(args.time_vec, mean_err_alt * np.ones(len(errors.pos.h_asl)), '*-k')
-        plt.plot(args.time_vec, estimation_resluts.params.Z, '-.g')
+        plt.plot(args.time_vec, estimation_results.params.Z, '-.g')
 
         # legend
         plt.title('Altitude Err [m]')
@@ -217,8 +217,8 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_resluts,
         fig.suptitle('Model Errors', fontsize=24, fontweight='bold')
 
         axs[0].set_title('Measurement mismatch and Error correction')
-        axs[0].plot(args.time_vec, estimation_resluts.params.Z, '--b')
-        axs[0].plot(args.time_vec, estimation_resluts.params.dX[2, :], '-r')
+        axs[0].plot(args.time_vec, estimation_results.params.Z, '--b')
+        axs[0].plot(args.time_vec, estimation_results.params.dX[2, :], '-r')
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
@@ -226,8 +226,8 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_resluts,
         axs[0].legend(['Error', 'Mismatch'], loc='best')
 
         axs[1].set_title('Process Noise, R and Rc')
-        axs[1].plot(args.time_vec, estimation_resluts.params.Rc, '-r')
-        axs[1].plot(args.time_vec, estimation_resluts.params.Rfit, '--b')
+        axs[1].plot(args.time_vec, estimation_results.params.Rc, '-r')
+        axs[1].plot(args.time_vec, estimation_results.params.Rfit, '--b')
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[1].grid(True)
@@ -257,7 +257,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_resluts,
             col = i % 3
             axs[row, col].set_ylim(-1, 1.1)
             axs[row, col].grid(True)
-            axs[row, col].plot(args.time_vec, estimation_resluts.params.K[i, :], linewidth=1)
+            axs[row, col].plot(args.time_vec, estimation_results.params.K[i, :], linewidth=1)
             axs[row, col].set_title(title)
             axs[row, col].set_xlabel('Time [sec]')
 
@@ -272,8 +272,9 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_resluts,
         fig = plt.figure('Map  - Ground Elevation at PinPoint', figsize=(10, 12))
         fig.suptitle('Ground Elevation at PinPoint', fontsize=24, fontweight='bold')
         plt.plot(args.time_vec, ground_truth.pinpoint.h_map, 'r')
-        plt.plot(args.time_vec, estimation_resluts.traj.pos.h_asl - estimation_resluts.traj.pos.h_agl, '--b')
-        plt.title('Map Altitude [m]')
+        plt.plot(args.time_vec, estimation_results.traj.pos.h_asl - estimation_results.traj.pos.h_agl, '--b')
+        plt.title('Map elevation')
+        plt.title('Height [m]')
         plt.xlabel('Time [sec]')
         plt.grid(True)
         plt.legend(['True', 'Estimated'])

@@ -28,7 +28,7 @@ class IEKF:
         self.conv_rate = None
         self.traj = BaseTraj(self.run_points)
         self.traj.pinpoint = PinPoint(self.run_points)
-        self.params = IEKFParams
+        self.params = IEKFParams(self)
 
 
     def _initialize_traj(self, meas):
@@ -80,6 +80,7 @@ class IEKF:
             jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
             h_agl_meas = meas.pinpoint.range[i] * jac
             h_map_meas = interp2d(map_data.ax_lon, map_data.ax_lat, map_data.grid)(lon, lat)
+            self.traj.pos.h_agl[i] = h_agl_meas
 
             self.params.H[:3, i] = [-self.params.SN[i], -self.params.SE[i], -1]  # Update observation matrix
             self._calc_rc(h_agl_meas)
@@ -229,6 +230,7 @@ class IEKF:
         self.traj.vel.north[i] -= self.params.dX[3, i]
         self.traj.vel.east[i] -= self.params.dX[4, i]
         self.traj.vel.down[i] -= self.params.dX[5, i]
+        self.traj.pos.h_map[i] = self.traj.pos.h_asl[i] - self.traj.pos.h_agl[i]
 
 
 class IEKFParams:
