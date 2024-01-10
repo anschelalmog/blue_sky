@@ -47,7 +47,7 @@ def set_settings():
 
     # Errors Flags
     parser.add_argument('--flg_err_pos', type=bool, default=0, help='flag error for position')
-    parser.add_argument('--flg_err_vel', type=bool, default=1, help='flag for error for velocity')
+    parser.add_argument('--flg_err_vel', type=bool, default=0, help='flag for error for velocity')
     parser.add_argument('--flg_err_alt', type=bool, default=0, help='flag error for altimeter')
     parser.add_argument('--flg_err_eul', type=bool, default=0, help='flag error for euler angels')
     parser.add_argument('--flg_err_baro_noise', type=bool, default=0, help='flag error for barometer noise')
@@ -73,7 +73,7 @@ def set_settings():
         args.init_lon = 23.5  # initial Longitude, in [deg]
         args.init_height = 5000  # flight height at start, in [m]
         args.avg_spd = 250  # flight average speed, [in m/sec]
-        args.psi = 45  # Yaw at start, in [deg]
+        args.psi = 22.5  # Yaw at start, in [deg]
         args.theta = 0  # Pitch at start, in [deg]
         args.phi = 0  # Roll at start, in [deg]
     else:
