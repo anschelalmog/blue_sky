@@ -119,7 +119,7 @@ class Map:
         # Load map tiles and assemble the full map
         for e in range(min_lon_int, max_lon_int):
             for n in range(min_lat_int, max_lat_int):
-                tile_path = os.path.join(os.getcwd(), self.args.maps_dir, f'Level{map_level}', 'DTED', f'E0{e}',
+                tile_path = os.path.join(os.getcwd(), self.args.maps_dir, f'Level{map_level}', 'MAP00', 'DTED', f'E0{e}',
                                          f'n{n}.{ext}')
                 tile_load = self._load_tile(tile_path, tile_length)
 

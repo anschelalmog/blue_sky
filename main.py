@@ -7,7 +7,20 @@ from modules.data_loaders import Map
 from modules.create_traj import CreateTraj
 from modules.noise_traj import NoiseTraj
 from modules.estimators import IEKF, UKF
-from modules.plot_run import plot_results, print_log, Errors, Covariances
+from modules.outputs_utils import Errors, Covariances, plot_results, print_log
+
+
+def plot_trajectory_on_map(map_data, trajectory):
+    plt.figure(figsize=(8, 8))
+    plt.imshow(map_data.grid, cmap='terrain', extent=[map_data.lon_bounds[0], map_data.lon_bounds[1],
+                                                      map_data.lat_bounds[0], map_data.lat_bounds[1]])
+    plt.plot(trajectory.pos.lon, trajectory.pos.lat, color='red', linewidth=2)
+    plt.title('Trajectory on Map')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.grid(True)
+    plt.show()
+
 
 def set_settings():
     parser = argparse.ArgumentParser()
@@ -33,12 +46,12 @@ def set_settings():
     parser.add_argument('--time_res', type=float, default=0.1, help='flights resolution speed, in [sec]')
 
     # Errors Flags
-    parser.add_argument('--flg_err_pos', type=bool, default=1, help='flag error for position')
+    parser.add_argument('--flg_err_pos', type=bool, default=0, help='flag error for position')
     parser.add_argument('--flg_err_vel', type=bool, default=1, help='flag for error for velocity')
-    parser.add_argument('--flg_err_alt', type=bool, default=1, help='flag error for altimeter')
-    parser.add_argument('--flg_err_eul', type=bool, default=1, help='flag error for euler angels')
-    parser.add_argument('--flg_err_baro_noise', type=bool, default=1, help='flag error for barometer noise')
-    parser.add_argument('--flg_err_baro_bias', type=bool, default=1, help='flag error for barometer bias')
+    parser.add_argument('--flg_err_alt', type=bool, default=0, help='flag error for altimeter')
+    parser.add_argument('--flg_err_eul', type=bool, default=0, help='flag error for euler angels')
+    parser.add_argument('--flg_err_baro_noise', type=bool, default=0, help='flag error for barometer noise')
+    parser.add_argument('--flg_err_baro_bias', type=bool, default=0, help='flag error for barometer bias')
 
     # Errors Values
     parser.add_argument('--val_err_pos', type=int, default=200, help='error for position, in [m]')
@@ -87,21 +100,20 @@ def main():
     args = set_settings()
 
     map_data = Map(args).load()  # load map
-    true_traj = CreateTraj(args).create_linear(map_data)
-    meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
-
-    time.sleep(0.5)
-
+    true_traj = CreateTraj(args).create_linear(map_data)  # where we actually are
+    meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)  # where we think we are
+    time.sleep(0.1)
+    # plot_trajectory_on_map(map_data, meas_traj)
 
     if args.kf_type == 'IEKF':
         # runs Iterated Extended Kalman Filter
-        est_traj = IEKF(args).run(map_data, meas_traj)
+        estimation_results = IEKF(args).run(map_data, meas_traj)
     else:  # args.kf_type == 'UKF':
         # runs Unscented Kalman Filter
-        est_traj = UKF(args).run(map_data, meas_traj)
+        estimation_results = UKF(args).run(map_data, meas_traj)
 
     # configure which plots to run
-    plots = {
+    args.plots = {
         'plot map': True,
         'position errors': True,
         'velocity errors': True,
@@ -111,9 +123,14 @@ def main():
         'kalman gains': True,
         'map elevation': True,
     }
-    errors, covs = plot_results(args, map_data, true_traj, meas_traj, est_traj, plots)
 
-    # print_log(args, errors, covs, est_traj.paramas, plots)
+    used_traj = true_traj if true_traj is not None else meas_traj
+    errors = Errors(used_traj, estimation_results.traj)
+    covariances = Covariances(estimation_results.params.P_est)
+
+    plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
+    pass
+    # print_log(args, estimation_results.params, errors, covariances)
 
 
 if __name__ == '__main__':
