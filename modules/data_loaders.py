@@ -2,9 +2,86 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.io as sp
 import os
+import argparse
+
 
 from modules.utils import get_mpd, cosd, sind
 from modules.base_traj import BaseTraj
+
+
+def set_settings():
+    parser = argparse.ArgumentParser()
+
+    # Run Settings
+    parser.add_argument('--traj_from_file', type=bool, default=False,
+                        help='load the trajectory from file or to generate one')
+    parser.add_argument('--traj_path', type=str, default='', help='the path of the trajectory file')
+    parser.add_argument('--plot_results', type=bool, default=True,
+                        help='plot and save plots results at the end of the run')
+    parser.add_argument('--noise_type', type=str, default='normal',
+                        help='measurements noise type: none, normal or uniform')
+
+    # Map Settings
+    parser.add_argument('--maps_dir', type=str, default='Map',
+                        help='Path to maps, format: "Map/LevelX/DTED/E0XX/mXX.mat".')
+    parser.add_argument('--map_level', type=int, default=1, help='map level')
+
+    # Time Settings
+    parser.add_argument('--time_init', type=int, default=0, help='times starts counting, in [sec]')
+    parser.add_argument('--time_end', type=int, default=100, help='times ends counting, in [sec]')
+    # parser.add_argument('--time_rate', type=float, default=1, help='time rate, in [sec]')
+    parser.add_argument('--time_res', type=float, default=0.1, help='flights resolution speed, in [sec]')
+
+    # Errors Flags
+    parser.add_argument('--flg_err_pos', type=bool, default=0, help='flag error for position')
+    parser.add_argument('--flg_err_vel', type=bool, default=0, help='flag for error for velocity')
+    parser.add_argument('--flg_err_alt', type=bool, default=0, help='flag error for altimeter')
+    parser.add_argument('--flg_err_eul', type=bool, default=0, help='flag error for euler angels')
+    parser.add_argument('--flg_err_baro_noise', type=bool, default=0, help='flag error for barometer noise')
+    parser.add_argument('--flg_err_baro_bias', type=bool, default=0, help='flag error for barometer bias')
+
+    # Errors Values
+    parser.add_argument('--val_err_pos', type=int, default=200, help='error for position, in [m]')
+    parser.add_argument('--val_err_vel', type=int, default=2, help='error for velocity, in [m/s]')
+    parser.add_argument('--val_err_alt', type=int, default=5, help='error for altimeter, in [m]')
+    parser.add_argument('--val_err_eul', type=int, default=0.05, help='error for euler angels, in [deg]')
+    parser.add_argument('--val_err_baro_noise', type=int, default=5, help='error for barometer, in [m]')
+    parser.add_argument('--val_err_baro_bias', type=int, default=5, help='error for barometer, in [m]')
+
+    # Kalman Filter Settings
+    parser.add_argument('--kf_type', type=str, default='IEKF', help='kalman filter type, format: IEKF or UKF')
+    # dX = [delP_North, delP_East, delH, delV_North, delV_East, delV_Down] , space state vector
+    parser.add_argument('--kf_state_size', type=int, default=6, help='number of state estimation')
+
+    config = parser.parse_args()
+    # Flight Settings
+    if not config.traj_from_file:
+        config.init_lat = 31.5  # initial Latitude, in [deg]
+        config.init_lon = 23.5  # initial Longitude, in [deg]
+        config.init_height = 5000  # flight height at start, in [m]
+        config.avg_spd = 250  # flight average speed, [in m/sec]
+        config.psi = 45  # Yaw at start, in [deg]
+        config.theta = 0  # Pitch at start, in [deg]
+        config.phi = 0  # Roll at start, in [deg]
+    else:
+        pass
+
+    # Other Defaults
+    config.run_points = int(config.time_end / config.time_res)
+    config.time_vec = np.arange(config.time_init, config.time_end, config.time_res)
+    config.map_res = 3 if config.map_level == 1 else 1
+    config.results_folder = os.path.join(os.getcwd(), 'Results')
+    config.imu_errors = {
+        'velocity': config.flg_err_vel * config.val_err_vel,
+        'initial_position': config.flg_err_pos * config.val_err_pos,
+        'euler_angles': config.flg_err_eul * config.val_err_eul,
+        'barometer_bias': config.flg_err_baro_bias * config.val_err_baro_bias,
+        'barometer_noise': config.flg_err_baro_noise * config.val_err_baro_noise,
+        'altimeter_noise': config.flg_err_alt * config.val_err_alt,
+    }
+
+    return config
+
 
 
 def generate_map(_map, flat=True, to_plot=True):
