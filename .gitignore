@@ -1,6 +1,8 @@
 .idea
 /ref
-/Results
+/Results/
+*.png
+*.svg
 *.iml
 out
 gen

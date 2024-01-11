@@ -17,7 +17,7 @@ def jac_east(psi, theta, phi):
     return sind(psi) * sind(theta) * cosd(phi) - cosd(psi) * sind(phi)
 
 
-#TODO: check where does the state updates by the euler angels
+# TODO: check where does the state updates by the euler angels
 class IEKF:
     def __init__(self, args):
         self.run_points = args.run_points
@@ -31,42 +31,47 @@ class IEKF:
         self.traj.pinpoint = PinPoint(self.run_points)
         self.params = IEKFParams(self)
 
-
-    def _initialize_traj(self, meas):
-        # Set initial values from meas
-        self.traj.pos.lat[0] = meas.pos.lat[0]
-        self.traj.pos.lon[0] = meas.pos.lon[0]
-        self.traj.pos.h_asl[0] = meas.pos.h_asl[0]  # altitude
-        jac = cosd(meas.euler.theta[0]) * cosd(meas.euler.phi[0])
-        self.traj.pos.h_agl[0] = meas.pinpoint.range[0] * jac  # H_agl_p
-        #
-        self.traj.vel.north[0] = meas.vel.north[0]
-        self.traj.vel.east[0] = meas.vel.east[0]
-        self.traj.vel.down[0] = meas.vel.down[0]
-        #
-        self.traj.pinpoint.delta_north[0] = meas.pinpoint.delta_north[0]
-        self.traj.pinpoint.delta_east[0] = meas.pinpoint.delta_east[0]
-        self.traj.pinpoint.h_map[0] = meas.pinpoint.h_map[0]
-
-    def _initialize_params(self):
-        self.params = IEKFParams(self)
-
-        self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2]), 2)
-        self.params.Q = np.power(np.diag([0, 0, 0, 1, 1, 1]), 1e-6)
-        # Dynamic Equation: linear motion
-        # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
-        self.params.Phi = np.eye(self.state_size)
-        self.params.Phi[0][3] = self.del_t
-        self.params.Phi[1][4] = self.del_t
-        self.params.Phi[2][5] = self.del_t
-
     def run(self, map_data, meas):
+        """
+             This method implements the main loop for the Iterative Extended Kalman Filter (IEKF).
+             IEKF is used here for estimating the trajectory of a vehicle using sensor measurements and map data.
+
+             KF Algorithm:
+             1. Initialization: the state estimates and covariance matrices.
+             2. Prediction Step:
+                - State Prediction:
+                  Formula (2.1): x_hat_k|k-1 = F * x_hat_k-1|k-1 + B * u_k
+                  Where x_hat is the state estimate, F is the state transition model, B is the control-input model,
+                  and u is the control vector.
+                - Covariance Prediction:
+                  Formula (2.2): P_k|k-1 = F_k * P_k-1|k-1 * F_k^T + Q_k
+                  Where P is the covariance matrix of the state estimate, and Q is the process noise covariance.
+
+             3. Update Step:
+                - Measurement Update: Calculate the Kalman Gain and update the estimate with the measurement.
+                  Formula (3.1): K_k = P_k|k-1 * H_k^T / (H_k * P_k|k-1 * H_k^T + R_k)
+                  Where K is the Kalman Gain, H is the observation model, and R is the measurement noise covariance.
+                - State Update:
+                  Formula (3.2): x_hat_k|k = x_hat_k|k-1 + K_k * (z_k - h(x_hat_k|k-1))
+                  Where z is the actual measurement, and h is the measurement function.
+                - Covariance Update:
+                  Formula (3.3): P_k|k = (I - K_k * H_k) * P_k|k-1
+                  Where I is the identity matrix.
+
+             This method iterates over the measurement points, applying these steps to estimate the vehicle's trajectory.
+
+             Parameters:
+             - map_data: Contains the map information necessary for navigation.
+             - meas: Sensor measurements used for estimating the trajectory.
+
+             Returns:
+             - self: An instance of the IEKF class with updated trajectory estimates.
+             """
         self._initialize_traj(meas)
 
         self._initialize_params()
 
         desc = "Estimating Trajectory with IEKF"
-
         for i in tqdm(range(1, self.run_points), desc=desc):
             self.curr_state = i
 
@@ -97,6 +102,34 @@ class IEKF:
             self._update_estimate_state(meas)
 
         return self
+
+    def _initialize_traj(self, meas):
+        # Set initial values from meas
+        self.traj.pos.lat[0] = meas.pos.lat[0]
+        self.traj.pos.lon[0] = meas.pos.lon[0]
+        self.traj.pos.h_asl[0] = meas.pos.h_asl[0]  # altitude
+        jac = cosd(meas.euler.theta[0]) * cosd(meas.euler.phi[0])
+        self.traj.pos.h_agl[0] = meas.pinpoint.range[0] * jac  # H_agl_p
+        #
+        self.traj.vel.north[0] = meas.vel.north[0]
+        self.traj.vel.east[0] = meas.vel.east[0]
+        self.traj.vel.down[0] = meas.vel.down[0]
+        #
+        self.traj.pinpoint.delta_north[0] = meas.pinpoint.delta_north[0]
+        self.traj.pinpoint.delta_east[0] = meas.pinpoint.delta_east[0]
+        self.traj.pinpoint.h_map[0] = meas.pinpoint.h_map[0]
+
+    def _initialize_params(self):
+        self.params = IEKFParams(self)
+
+        self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2]), 2)
+        self.params.Q = np.power(np.diag([0, 0, 0, 1, 1, 1]), 1e-6)
+        # Dynamic Equation: linear motion
+        # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
+        self.params.Phi = np.eye(self.state_size)
+        self.params.Phi[0][3] = self.del_t
+        self.params.Phi[1][4] = self.del_t
+        self.params.Phi[2][5] = self.del_t
 
     def _predict_state(self, meas):
         """
@@ -136,9 +169,9 @@ class IEKF:
         phi = meas.euler.phi[i]
 
         self.traj.pinpoint.delta_north[i] = meas.pinpoint.range[i] * (
-                    cosd(psi) * sind(theta) * cosd(phi) + sind(psi) * sind(phi))
+                cosd(psi) * sind(theta) * cosd(phi) + sind(psi) * sind(phi))
         self.traj.pinpoint.delta_east[i] = meas.pinpoint.range[i] * (
-                    sind(psi) * sind(theta) * cosd(phi) - cosd(psi) * sind(phi))
+                sind(psi) * sind(theta) * cosd(phi) - cosd(psi) * sind(phi))
 
         # lon - lat at pinpoint
         lat = self.traj.pos.lat[i] + self.traj.pinpoint.delta_north[i] / meas.mpd_north[i]
@@ -250,8 +283,6 @@ class IEKFParams:
         self.SE = np.zeros(kf.run_points)
 
 
-
-
 class UKF:
     def __init__(self, args):
         # Initialization parameters
@@ -338,6 +369,7 @@ class UKF:
             z_pred += self.params.weights_mean[i] * Z_sigma[:, i]
         return z_pred
 
+
 class UKFParams:
     def __init__(self, ukf):
         # State size and run points from the UKF instance
@@ -383,4 +415,3 @@ class UKFParams:
         weights = np.full(2 * self.state_size + 1, 1 / (2 * (self.state_size + self.lambda_)))
         weights[0] = self.lambda_ / (self.state_size + self.lambda_) + (1 - self.alpha ** 2 + self.beta)
         return weights
-

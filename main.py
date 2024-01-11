@@ -73,7 +73,7 @@ def set_settings():
         args.init_lon = 23.5  # initial Longitude, in [deg]
         args.init_height = 5000  # flight height at start, in [m]
         args.avg_spd = 250  # flight average speed, [in m/sec]
-        args.psi = 22.5  # Yaw at start, in [deg]
+        args.psi = 45  # Yaw at start, in [deg]
         args.theta = 0  # Pitch at start, in [deg]
         args.phi = 0  # Roll at start, in [deg]
     else:
@@ -99,9 +99,20 @@ def set_settings():
 def main():
     args = set_settings()
 
+    args.psi = 45
     map_data = Map(args).load()  # load map
     true_traj = CreateTraj(args).create_linear(map_data)  # where we actually are
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)  # where we think we are
+    estimation_results_1 = IEKF(args).run(map_data, meas_traj)
+    args.psi = 22.5
+    true_traj_1 = CreateTraj(args).create_linear(map_data)
+    meas_traj_1 = NoiseTraj(true_traj_1).noise(args.imu_errors, dist=args.noise_type)
+    estimation_results_2 = IEKF(args).run(map_data, meas_traj_1)
+    args.psi = 0
+    true_traj_2 = CreateTraj(args).create_linear(map_data)
+    meas_traj_2 = NoiseTraj(true_traj_2).noise(args.imu_errors, dist=args.noise_type)
+    estimation_results_3 = IEKF(args).run(map_data, meas_traj_2)
+
     time.sleep(0.1)
     # plot_trajectory_on_map(map_data, meas_traj)
 
@@ -125,13 +136,16 @@ def main():
     }
 
     used_traj = true_traj if true_traj is not None else meas_traj
+    used_traj = meas_traj
     errors = Errors(used_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)
 
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
-    pass
     # print_log(args, estimation_results.params, errors, covariances)
 
 
 if __name__ == '__main__':
     main()
+
+
+
