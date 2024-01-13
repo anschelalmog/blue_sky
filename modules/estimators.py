@@ -334,10 +334,10 @@ class UKF:
             P_pred += self.params.weights_covariance[i] * np.outer(diff, diff)
         return P_pred
 
-    def _update_state(self):
+    def _update_state(self, Z_sigma, Z_pred, meas):
         pass  # State update step
 
-    def _update_covariance(self):
+    def _update_covariance(self, X_sigma_pred, Z_sigma, Z_pred):
         pass  # Covariance update step
 
     def _compute_sigma_points(self):
@@ -356,7 +356,7 @@ class UKF:
 
         return sigma_points
 
-    def _unscented_transform(self):
+    def _unscented_transform(self, X_sigma_pred):
         Z_sigma = np.zeros((self.measurement_size, 2 * self.state_size + 1))
         for i in range(2 * self.state_size + 1):
             Z_sigma[:, i] = self._measurement_model(X_sigma_pred[:, i])
