@@ -41,7 +41,7 @@ class IEKF:
              2. Prediction Step:
                 - State Prediction:
                   Formula (2.1): x_hat_k|k-1 = F * x_hat_k-1|k-1 + B * u_k
-                  Where x_hat is the state estimate, F is the state transition model, B is the control-input model,
+                  x_hat - state estimate, F - transition model, B is the control-input model,
                   and u is the control vector.
                 - Covariance Prediction:
                   Formula (2.2): P_k|k-1 = F_k * P_k-1|k-1 * F_k^T + Q_k

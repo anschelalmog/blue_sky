@@ -25,7 +25,6 @@ class CreateTraj(BaseTraj):
 
     def create_linear(self, map_data):
         # assuming constant velocity, straight flight
-
         self._create_euler_linear()
         self._create_vel_linear()
         self._create_pos_linear(map_data)
