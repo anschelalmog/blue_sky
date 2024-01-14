@@ -4,7 +4,6 @@ from src.utils import cosd, sind
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 
-
 class CreateTraj(BaseTraj):
     def __init__(self, args):
         super().__init__(args.run_points)

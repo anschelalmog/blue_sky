@@ -49,9 +49,6 @@ if __name__ == '__main__':
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
     # print_log(args, estimation_results.params, errors, covariances)
 
-
-
-
 """
    fig = plt.figure('compare', figsize=(10, 12))
     ax = fig.add_subplot(111)
