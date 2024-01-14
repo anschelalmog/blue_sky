@@ -98,6 +98,7 @@ class IEKF:
             self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
             self._estimate_covariance(p_pre)
 
+
             self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]
             self._update_estimate_state(meas)
 
@@ -265,7 +266,8 @@ class IEKF:
         self.traj.vel.east[i] -= self.params.dX[4, i]
         self.traj.vel.down[i] -= self.params.dX[5, i]
         self.traj.pos.h_map[i] = self.traj.pos.h_asl[i] - self.traj.pos.h_agl[i]
-
+        self.traj.pos.north[i] = self.traj.pos.lat[i] * meas.mpd_north[i]
+        self.traj.pos.east[i] = self.traj.pos.lon[i] * meas.mpd_east[i]
 
 class IEKFParams:
     def __init__(self, kf):

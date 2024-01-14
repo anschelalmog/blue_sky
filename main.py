@@ -1,20 +1,13 @@
-import time
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-##
 from src.data_loaders import Map, set_settings
 from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
-from src.outputs_utils import Errors, Covariances, plot_results, print_log
+from src.outputs_utils import Errors, Covariances, plot_results
+import time
 
 if __name__ == '__main__':
-    # Set the system settings
-    args = set_settings()
-
-    # Load the map data using the provided settings
-    map_data = Map(args).load()
+    args = set_settings()   # Set the system settings
+    map_data = Map(args).load()      # Load the map data using the provided settings
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create_linear(map_data)
@@ -47,33 +40,3 @@ if __name__ == '__main__':
     covariances = Covariances(estimation_results.params.P_est)
 
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
-    # print_log(args, estimation_results.params, errors, covariances)
-
-"""
-   fig = plt.figure('compare', figsize=(10, 12))
-    ax = fig.add_subplot(111)
-    ax.set_title('compare', fontsize=24, fontweight='bold')
-    X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
-    plt.grid(False)
-    ax.set_xlabel('Longitude [deg]')
-    ax.set_ylabel('Latitude [deg]')
-    markers = ['o', 's', '^']  # Circle, square, and triangle markers
-    line_styles = ['-', '--', '-.']  # Solid, dashed, and dash-dot lines
-
-    for psi_val, marker, line_style in zip([45, 22, 0], markers, line_styles):
-        args.psi = psi_val
-        modified_traj = CreateTraj(args).create_linear(map_data)
-
-        # Use the marker and line style in the plot
-        ax.plot(modified_traj.pos.lon, modified_traj.pos.lat,
-                linewidth=4, label=f'psi={psi_val}', marker=marker, linestyle=line_style)
-
-    # Legend
-    lgd = ax.legend(loc='best')
-    lgd.set_title('PATHS')
-    lgd.get_frame().set_linewidth(1.0)
-    plt.tight_layout()
-    plt.savefig(os.path.join(args.results_folder, 'compare.png'))
-    plt.show()
-
-"""

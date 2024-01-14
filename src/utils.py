@@ -20,7 +20,7 @@ def get_mpd(lat, h=0):
     mpd_n = rn * pi / 180  # [m/deg]
     mpd_e = re * cos(lat) * pi / 180  # [m/deg]
 
-    return mpd_n, mpd_e
+    return mpd_n, mpd_e  # [m/deg]
 
 
 def cosd(angel):

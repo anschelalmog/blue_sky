@@ -82,7 +82,6 @@ def set_settings():
     return config
 
 
-
 def generate_map(_map, flat=True, to_plot=False):
     tile_size = _map.shape[0]
     if flat:
@@ -195,7 +194,8 @@ class Map:
         # Load map tiles and assemble the full map
         for e in range(min_lon_int, max_lon_int):
             for n in range(min_lat_int, max_lat_int):
-                tile_path = os.path.join(os.getcwd(), self.args.maps_dir, f'Level{map_level}', 'MAP00', 'DTED', f'E0{e}',
+                tile_path = os.path.join(os.getcwd(), self.args.maps_dir, f'Level{map_level}', 'MAP00', 'DTED',
+                                         f'E0{e}',
                                          f'n{n}.{ext}')
                 tile_load = self._load_tile(tile_path, tile_length)
 
@@ -224,3 +224,33 @@ class Map:
 
 class TrajFromFile(BaseTraj):
     pass
+
+
+"""
+   fig = plt.figure('compare', figsize=(10, 12))
+    ax = fig.add_subplot(111)
+    ax.set_title('compare', fontsize=24, fontweight='bold')
+    X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
+    plt.grid(False)
+    ax.set_xlabel('Longitude [deg]')
+    ax.set_ylabel('Latitude [deg]')
+    markers = ['o', 's', '^']  # Circle, square, and triangle markers
+    line_styles = ['-', '--', '-.']  # Solid, dashed, and dash-dot lines
+
+    for psi_val, marker, line_style in zip([45, 22, 0], markers, line_styles):
+        args.psi = psi_val
+        modified_traj = CreateTraj(args).create_linear(map_data)
+
+        # Use the marker and line style in the plot
+        ax.plot(modified_traj.pos.lon, modified_traj.pos.lat,
+                linewidth=4, label=f'psi={psi_val}', marker=marker, linestyle=line_style)
+
+    # Legend
+    lgd = ax.legend(loc='best')
+    lgd.set_title('PATHS')
+    lgd.get_frame().set_linewidth(1.0)
+    plt.tight_layout()
+    plt.savefig(os.path.join(args.results_folder, 'compare.png'))
+    plt.show()
+
+"""
