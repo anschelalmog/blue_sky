@@ -3,7 +3,7 @@ import numpy as np
 import os
 import datetime
 
-from modules.base_traj import BaseTraj
+from src.base_traj import BaseTraj
 
 
 # noinspection DuplicatedCode

@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.random as rnd
-from modules.base_traj import BaseTraj
-from modules.pinpoint_calc import PinPoint
+from src.base_traj import BaseTraj
+from src.pinpoint_calc import PinPoint
 
 
 class NoiseTraj(BaseTraj):

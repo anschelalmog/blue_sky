@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from modules.utils import cosd, sind
-from modules.base_traj import BaseTraj
-from modules.pinpoint_calc import PinPoint
+from src.utils import cosd, sind
+from src.base_traj import BaseTraj
+from src.pinpoint_calc import PinPoint
 
 
 class CreateTraj(BaseTraj):

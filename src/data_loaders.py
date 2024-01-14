@@ -5,8 +5,8 @@ import os
 import argparse
 
 
-from modules.utils import get_mpd, cosd, sind
-from modules.base_traj import BaseTraj
+from src.utils import get_mpd, cosd, sind
+from src.base_traj import BaseTraj
 
 
 def set_settings():

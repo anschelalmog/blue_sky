@@ -1,10 +1,10 @@
 import time
 ##
-from modules.data_loaders import Map, set_settings
-from modules.create_traj import CreateTraj
-from modules.noise_traj import NoiseTraj
-from modules.estimators import IEKF, UKF
-from modules.outputs_utils import Errors, Covariances, plot_results, print_log
+from src.data_loaders import Map, set_settings
+from src.create_traj import CreateTraj
+from src.noise_traj import NoiseTraj
+from src.estimators import IEKF, UKF
+from src.outputs_utils import Errors, Covariances, plot_results, print_log
 
 if __name__ == '__main__':
     # Set the system settings
