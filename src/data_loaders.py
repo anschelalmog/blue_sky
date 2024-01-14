@@ -4,7 +4,6 @@ import scipy.io as sp
 import os
 import argparse
 
-
 from src.utils import get_mpd, cosd, sind
 from src.base_traj import BaseTraj
 
@@ -33,12 +32,12 @@ def set_settings():
     parser.add_argument('--time_res', type=float, default=0.1, help='flights resolution speed, in [sec]')
 
     # Errors Flags
-    parser.add_argument('--flg_err_pos', type=bool, default=0, help='flag error for position')
-    parser.add_argument('--flg_err_vel', type=bool, default=0, help='flag for error for velocity')
-    parser.add_argument('--flg_err_alt', type=bool, default=0, help='flag error for altimeter')
-    parser.add_argument('--flg_err_eul', type=bool, default=0, help='flag error for euler angels')
-    parser.add_argument('--flg_err_baro_noise', type=bool, default=0, help='flag error for barometer noise')
-    parser.add_argument('--flg_err_baro_bias', type=bool, default=0, help='flag error for barometer bias')
+    parser.add_argument('--flg_err_pos', type=bool, default=False, help='flag error for position')
+    parser.add_argument('--flg_err_vel', type=bool, default=False, help='flag for error for velocity')
+    parser.add_argument('--flg_err_alt', type=bool, default=False, help='flag error for altimeter')
+    parser.add_argument('--flg_err_eul', type=bool, default=False, help='flag error for euler angels')
+    parser.add_argument('--flg_err_baro_noise', type=bool, default=False, help='flag error for barometer noise')
+    parser.add_argument('--flg_err_baro_bias', type=bool, default=False, help='flag error for barometer bias')
 
     # Errors Values
     parser.add_argument('--val_err_pos', type=int, default=200, help='error for position, in [m]')
@@ -60,7 +59,7 @@ def set_settings():
         config.init_lon = 23.5  # initial Longitude, in [deg]
         config.init_height = 5000  # flight height at start, in [m]
         config.avg_spd = 250  # flight average speed, [in m/sec]
-        config.psi = 45  # Yaw at start, in [deg]
+        config.psi = 22  # Yaw at start, in [deg]
         config.theta = 0  # Pitch at start, in [deg]
         config.phi = 0  # Roll at start, in [deg]
     else:
@@ -70,7 +69,7 @@ def set_settings():
     config.run_points = int(config.time_end / config.time_res)
     config.time_vec = np.arange(config.time_init, config.time_end, config.time_res)
     config.map_res = 3 if config.map_level == 1 else 1
-    config.results_folder = os.path.join(os.getcwd(), 'Results')
+    config.results_folder = os.path.join(os.getcwd(), 'out')
     config.imu_errors = {
         'velocity': config.flg_err_vel * config.val_err_vel,
         'initial_position': config.flg_err_pos * config.val_err_pos,
