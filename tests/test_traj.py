@@ -10,7 +10,7 @@ class TestCreateTraj(unittest.TestCase):
         args = set_settings()
         map_data = Map(args).load()
         create_traj = CreateTraj(args)
-        result = create_traj.create_linear(map_data)
+        result = create_traj.linear(map_data)
 
 
         self.assertEqual(result.pos.lat[0], expected_latitude)

@@ -55,6 +55,7 @@ def set_settings():
     config = parser.parse_args()
     # Flight Settings
     if not config.traj_from_file:
+        # todo: add to variable measures in deg
         config.init_lat = 31.5  # initial Latitude, in [deg]
         config.init_lon = 23.5  # initial Longitude, in [deg]
         config.init_height = 5000  # flight height at start, in [m]

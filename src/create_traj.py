@@ -23,7 +23,7 @@ class CreateTraj(BaseTraj):
         #
         self.pinpoint = None
 
-    def create_linear(self, map_data):
+    def linear(self, map_data):
         # assuming constant velocity, straight flight
         self._create_euler_linear()
         self._create_vel_linear()
@@ -115,3 +115,17 @@ class CreateTraj(BaseTraj):
         points = np.array(np.meshgrid(self.pos.lat, self.pos.lon)).T.reshape(-1, 2)
         self.pos.h_map_grid = interpolator(points).reshape(self.pos.lat.size, self.pos.lon.size)
         self.pos.h_map = interpolator(np.vstack((self.pos.lat, self.pos.lon)).T)
+
+    def constant_acc(self, map_data):
+        self._create_euler_acc()
+        self._create_vel_acc()
+        self._create_traj_acc(map_data)
+        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
+        return self
+
+    def _create_euler_acc(self):
+        pass
+    def _create_vel_acc(self):
+        pass
+    def _create_traj_acc(self, map_data):
+        pass

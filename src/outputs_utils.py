@@ -58,17 +58,23 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
 
         # Ground Truth
         if ground_truth is not None:
-            ax.plot3D(ground_truth.pos.lon, ground_truth.pos.lat, ground_truth.pos.h_asl, linewidth=4, color='r',
+            ax.plot3D(ground_truth.pos.north, ground_truth.pos.east, ground_truth.pos.h_asl, linewidth=4, color='r',
                       label='Ground Truth')
+            # ax.plot3D(ground_truth.pos.lon, ground_truth.pos.lat, ground_truth.pos.h_asl, linewidth=4, color='r',
+            #           label='Ground Truth')
 
         # Measured
         idx = 10  # every 10th element
-        ax.scatter3D(measurements.pos.lon[::idx], measurements.pos.lat[::idx], measurements.pos.h_asl[::idx],
+        ax.scatter3D(measurements.pos.north[::idx], measurements.pos.east[::idx], measurements.pos.h_asl[::idx],
                      marker='x', color='black', label='Measured')
+        # ax.scatter3D(measurements.pos.lon[::idx], measurements.pos.lat[::idx], measurements.pos.h_asl[::idx],
+        #              marker='x', color='black', label='Measured')
 
         # Estimated
-        ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
+        ax.plot3D(estimation_results.traj.pos.north, estimation_results.traj.pos.east, estimation_results.traj.pos.h_asl,
                   linewidth=4, color='b', label='Estimated')
+        # ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
+        #           linewidth=4, color='b', label='Estimated')
 
         # Legend
         lgd = ax.legend(loc='best')

@@ -3,19 +3,20 @@ from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
-import time
 
 if __name__ == '__main__':
     args = set_settings()   # Set the system settings
     map_data = Map(args).load()      # Load the map data using the provided settings
-
     # Create the actual trajectory based on the map data and settings
-    true_traj = CreateTraj(args).create_linear(map_data)
+    args.psi = 45
+    true_traj = CreateTraj(args).linear(map_data)
+    # if args.traj_type == 'linear': true_traj.linear(map_data)
+    # else: true_traj.constant_acceleration(map_data)
+    args.psi = 22
+    true_traj_22 = CreateTraj(args).linear(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
-
-    time.sleep(0.1)
 
     if args.kf_type == 'IEKF':
         # runs Iterated Extended Kalman Filter
