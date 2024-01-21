@@ -1,5 +1,6 @@
 from numpy import sin, cos, pi, power, array, radians
 
+
 def set_errors(args, imu_errors):
     args.initial_position_error = args.val_err_pos * imu_errors['initial_position']
     args.velocity_error = args.val_err_vel * imu_errors['velocity']
@@ -15,7 +16,7 @@ def get_mpd(lat, h=0):
     lat = array(radians(lat))
 
     rn = r0 * (1.0 - f * (2.0 - 3.0 * power(sin(lat), 2))) + h  # [m]
-    re = r0 * (1.0 + f * power(sin(lat), 2)) + h   # [m]
+    re = r0 * (1.0 + f * power(sin(lat), 2)) + h  # [m]
 
     mpd_n = rn * pi / 180  # [m/deg]
     mpd_e = re * cos(lat) * pi / 180  # [m/deg]
@@ -29,3 +30,40 @@ def cosd(angel):
 
 def sind(angel):
     return sin(radians(angel))
+
+
+def euler_to_dcm(rotation_axis: str, yaw: float, pitch: float, roll: float):
+    """
+    Convert Euler angles to Direction Cosine Matrix (DCM).
+
+    :param rotation_axis: The axis around which the rotation is performed. Only accepts "north", "east", or "down".
+    :param yaw: The yaw angle in degrees.
+    :param pitch: The pitch angle in degrees.
+    :param roll: The roll angle in degrees.
+    :return: The DCM matrix multiplied by the axis vector.
+    """
+    assert rotation_axis in ["north", "east", "down"]
+    axis_vector = [rotation_axis == "north",
+                   rotation_axis == "east",
+                   rotation_axis == "down"]
+
+    yaw, pitch, roll = radians(yaw), radians(pitch), radians(roll)
+
+    # Yaw (around z-axis)
+    rot_z = array([[cos(yaw), -sin(yaw), 0],
+                   [sin(yaw), cos(yaw), 0],
+                   [0, 0, 1]])
+
+    # Pitch (around y-axis)
+    rot_y = array([[cos(pitch), 0, sin(pitch)],
+                   [0, 1, 0],
+                   [-sin(pitch), 0, cos(pitch)]])
+
+    # Roll (around x-axis)
+    rot_x = array([[1, 0, 0],
+                   [0, cos(roll), -sin(roll)],
+                   [0, sin(roll), cos(roll)]])
+
+    # Combined DCM
+    dcm = rot_z @ rot_y @ rot_x
+    return dcm @ axis_vector
