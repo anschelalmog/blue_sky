@@ -36,6 +36,7 @@ def euler_to_dcm(rotation_axis: str, yaw: float, pitch: float, roll: float):
     """
     Convert Euler angles to Direction Cosine Matrix (DCM).
 
+    taken from 'https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions'
     :param rotation_axis: The axis around which the rotation is performed. Only accepts "north", "east", or "down".
     :param yaw: The yaw angle in degrees.
     :param pitch: The pitch angle in degrees.

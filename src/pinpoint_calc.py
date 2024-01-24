@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 from scipy.interpolate import interp1d, RegularGridInterpolator
-from src.utils import sind, cosd
+from src.utils import sind, cosd, euler_to_dcm
 
 
 def jac_north(psi, theta, phi):

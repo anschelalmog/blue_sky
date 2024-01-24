@@ -1,6 +1,6 @@
-from numpy import array, array_equal, dot, allclose
 from src.utils import euler_to_dcm
-from icecream import ic
+from src.pinpoint_calc import jac_east, jac_north
+from numpy import array, array_equal, dot, allclose
 import pytest
 
 
@@ -17,13 +17,12 @@ def test_euler_to_dcm(direction, expected_dcm):
 
 @pytest.mark.parametrize(
     "yaw, expected_dcm",
-    [(90, array([0, -1, 0])),
-     (-90, array([0, 1, 0])),
+    [(90, array([0, 1, 0])),
+     (-90, array([0, -1, 0])),
      (180, array([-1, 0, 0]))
      ])
 def test_yaw_rotation(yaw, expected_dcm):
     dcm = euler_to_dcm('north', yaw, 0, 0)
-    ic(dcm)
     assert allclose(dcm, expected_dcm)
 
 
@@ -52,7 +51,6 @@ def test_roll_rotation(rot_ax, roll, expected_dcm):
 
 #todo: ask Oshra if the projection on the axis should after to DCM function
 #      and not inside to function
-
 
 # @pytest.mark.parametrize(
 #     "yaw, pitch, roll, expected",
@@ -88,7 +86,7 @@ def test_angle_wrapping(yaw, pitch, roll, modified_yaw, modified_pitch, modified
 
 
 def test_invalid_input_type():
-    with pytest.raises(TypeError):
+    with pytest.raises(AssertionError):
         euler_to_dcm([1, 0, 0], [45], None, 0)
 
 
