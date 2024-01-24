@@ -4,63 +4,86 @@ from icecream import ic
 import pytest
 
 
-def test_zero_angles_north():
-    dcm = euler_to_dcm("north", 0, 0, 0)
-    assert array_equal(dcm, array([1, 0, 0]))
-
-
-def test_zero_angles_east():
-    dcm = euler_to_dcm("east", 0, 0, 0)
-    assert array_equal(dcm, array([0, 1, 0]))
-
-
-def test_zero_angles_down():
-    dcm = euler_to_dcm("down", 0, 0, 0)
-    assert array_equal(dcm, array([0, 0, 1]))
+@pytest.mark.parametrize(
+    "direction, expected_dcm",
+    [("north", array([1, 0, 0])),
+     ("east", array([0, 1, 0])),
+     ("down", array([0, 0, 1]))
+     ])
+def test_euler_to_dcm(direction, expected_dcm):
+    dcm = euler_to_dcm(direction, 0, 0, 0)
+    assert array_equal(dcm, expected_dcm)
 
 
 @pytest.mark.parametrize(
-    "roll_angle, expected_dcm",
+    "yaw, expected_dcm",
     [(90, array([0, -1, 0])),
      (-90, array([0, 1, 0])),
      (180, array([-1, 0, 0]))
-    ])
-def test_yaw_rotation(roll_angle, expected_dcm):
-    dcm = euler_to_dcm('north', roll_angle, 0, 0)
+     ])
+def test_yaw_rotation(yaw, expected_dcm):
+    dcm = euler_to_dcm('north', yaw, 0, 0)
     ic(dcm)
     assert allclose(dcm, expected_dcm)
 
 
 @pytest.mark.parametrize(
-    "pitch_angle,expected_dcm",
+    "pitch,expected_dcm",
     [(90, array([0, 0, -1])),
      (-90, array([0, 0, 1])),
      (180, array([-1, 0, 0]))
      ])
-def test_pitch_rotation(pitch_angle, expected_dcm):
-    dcm = euler_to_dcm('north', 0, pitch_angle, 0)
+def test_pitch_rotation(pitch, expected_dcm):
+    dcm = euler_to_dcm('north', 0, pitch, 0)
     assert allclose(dcm, expected_dcm)
 
 
-def test_roll_rotation():
-    dcm = euler_to_dcm("down", 0, 0, 90)
-    expected = array([0, -1, 0])
-    assert allclose(dcm, expected)
+@pytest.mark.parametrize(
+    "rot_ax, roll, expected_dcm",
+    [('north', 90, array([1, 0, 0])),
+     ('north', 180, array([1, 0, 0])),
+     ('east', 180, array([0, -1, 0])),
+     ('down', 180, array([0, 0, -1]))
+    ])
+def test_roll_rotation(rot_ax, roll, expected_dcm):
+    dcm = euler_to_dcm(rot_ax, 0, 0, roll)
+    assert allclose(dcm, expected_dcm)
 
+
+#todo: ask Oshra if the projection on the axis should after to DCM function
+#      and not inside to function
+
+
+# @pytest.mark.parametrize(
+#     "yaw, pitch, roll, expected",
+#     [(0,  0, 0, array([1, 0, 0])),
+#      (90, 0, 0, array([1, 0, 0])),
+#      (0, 90, 0, array([1, 0, 0])),
+#      (0,  0, 180, array([1, 0, 0]))
+#      ])
+# def test_inverse_rotation(yaw, pitch, roll, expected):
+#     dcm = euler_to_dcm("north", yaw, pitch, roll)
+#     inv_dcm = euler_to_dcm("north", -yaw, -pitch, -roll)
+#     result = dcm * inv_dcm
+#     assert allclose(result, expected)
 
 def test_inverse_rotation():
     yaw, pitch, roll = 0, 0, 0
     dcm = euler_to_dcm("north", yaw, pitch, roll)
     inv_dcm = euler_to_dcm("north", -yaw, -pitch, -roll)
-    result = dot(dcm, inv_dcm)
+    result = dcm * inv_dcm
     expected = array([1, 0, 0])
     assert allclose(result, expected)
 
-
-def test_angle_wrapping():
-    yaw, pitch, roll = 45, 45, 45
+@pytest.mark.parametrize(
+    "yaw, pitch, roll, modified_yaw, modified_pitch, modified_roll",
+    [(45, 45, 45, 45 - 360, 45 - 360, 45 - 360),
+     (30, 60, 90, 30 - 360, 60 - 360, 90 - 360),
+     (120, 150, 180, 120 - 360, 150 - 360, 180 - 360)
+     ])
+def test_angle_wrapping(yaw, pitch, roll, modified_yaw, modified_pitch, modified_roll):
     dcm_1 = euler_to_dcm("east", yaw, pitch, -roll)
-    dcm_2 = euler_to_dcm("east", yaw - 360, pitch - 360, -(roll - 360))
+    dcm_2 = euler_to_dcm("east", modified_yaw, modified_pitch, -modified_roll)
     assert allclose(dcm_1, dcm_2)
 
 
