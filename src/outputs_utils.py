@@ -46,7 +46,8 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
     repr(args.plots)
 
     if args.plots['plot map']:
-        fig = plt.figure('results_on_map', figsize=(10, 12))
+        title = 'Results on Map'
+        fig = plt.figure(title, figsize=(10, 12))
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title('MAP', fontsize=24, fontweight='bold')
         X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
@@ -83,14 +84,15 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.tight_layout()
 
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'map_plot.png'))
-        plt.savefig(os.path.join(args.results_folder, 'map_plot.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # show fig
         plt.show()
     if args.plots['position errors']:
+        title = 'Position Errors'
         fig, axs = plt.subplots(2, 1, figsize=(10, 12))
-        fig.suptitle('Position Errors', fontsize=24, fontweight='bold')
+        fig.suptitle(title, fontsize=24, fontweight='bold')
 
         # Error in North position
         axs[0].plot(args.time_vec, errors.pos.north, '-r', linewidth=1)
@@ -110,15 +112,15 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].grid(True)
         axs[1].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'position_errors.png'))
-        plt.savefig(os.path.join(args.results_folder, 'position_errors.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # plot show
         plt.show()
     if args.plots['velocity errors']:
+        title = 'Velocity Errors'
         fig, axs = plt.subplots(3, 1, figsize=(10, 12))
-        fig.suptitle('Velocity Errors', fontsize=24, fontweight='bold')
-
+        fig.suptitle(title, fontsize=24, fontweight='bold')
         # Error in North Velocity
         axs[0].plot(args.time_vec, errors.vel.north, '-r', linewidth=1)
         axs[0].plot(args.time_vec, covars.vel.north, '--b', linewidth=1)
@@ -149,13 +151,14 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.tight_layout()
 
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'velocity_errors.png'))
-        plt.savefig(os.path.join(args.results_folder, 'velocity_errors.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         plt.show()
     if args.plots['altitude errors']:
-        plt.figure('Altitude Errors', figsize=(10, 12))
-        plt.suptitle('Altitude Errors', fontsize=24, fontweight='bold')
+        title = 'Altitude Errors'
+        plt.figure(title, figsize=(10, 12))
+        plt.suptitle(title, fontsize=24, fontweight='bold')
 
         plt.plot(args.time_vec, errors.pos.h_asl, 'r', linewidth=1)
         plt.plot(args.time_vec, covars.pos.h_asl, '--b', linewidth=1)
@@ -172,14 +175,15 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.legend(['Error', r'+$\sigma$', r'-$\sigma$', 'mean', 'Z'], loc='best')
 
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'altitude_errors.png'))
-        plt.savefig(os.path.join(args.results_folder, 'altitude_errors.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # show plot
         plt.show()
     if args.plots['attitude errors']:
+        title = 'Attitude Errors'
         fig, axs = plt.subplots(3, 1, figsize=(10, 12))
-        fig.suptitle('Attitude Errors', fontsize=24, fontweight='bold')
+        fig.suptitle(title, fontsize=24, fontweight='bold')
 
         # Error in euler psi
         axs[0].plot(args.time_vec, errors.euler.psi, '-r', linewidth=1)
@@ -211,14 +215,15 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.tight_layout()
 
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'attitude_errors.png'))
-        plt.savefig(os.path.join(args.results_folder, 'attitude_errors.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # plot show
         plt.show()
     if args.plots['model errors']:
+        title = 'Model Errors'
         fig, axs = plt.subplots(2, 1, figsize=(10, 12))
-        fig.suptitle('Model Errors', fontsize=24, fontweight='bold')
+        fig.suptitle(title, fontsize=24, fontweight='bold')
 
         axs[0].set_title('Measurement mismatch and Error correction')
         axs[0].plot(args.time_vec, estimation_results.params.Z, '--b')
@@ -238,12 +243,13 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].legend(['Rc - penalty on height', 'Rfit', 'R'], loc='best')
 
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'model_errors.png'))
-        plt.savefig(os.path.join(args.results_folder, 'model_errors.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # show plot
         plt.show()
     if args.plots['kalman gains']:
+        title = "Kalman Gains"
         gains = [
             'Position North',
             'Position East',
@@ -254,7 +260,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         ]
 
         fig, axs = plt.subplots(2, 3, figsize=(10, 12))
-        fig.suptitle('Kalman Gains', fontsize=24, fontweight='bold')
+        fig.suptitle(title, fontsize=24, fontweight='bold')
 
         for i, title in enumerate(gains):
             row = i // 3
@@ -267,14 +273,15 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
 
         plt.tight_layout()
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'kalman_gains.png'))
-        plt.savefig(os.path.join(args.results_folder, 'kalman_gains.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # plot show
         plt.show()
     if args.plots['map elevation']:
+        title = 'Map Elevation'
         fig = plt.figure('Map  - Ground Elevation at PinPoint', figsize=(10, 12))
-        fig.suptitle('Ground Elevation at PinPoint', fontsize=24, fontweight='bold')
+        fig.suptitle(title, fontsize=24, fontweight='bold')
         plt.plot(args.time_vec, ground_truth.pinpoint.h_map, 'r')
         plt.plot(args.time_vec, estimation_results.traj.pos.h_asl - estimation_results.traj.pos.h_agl, '--b')
         plt.title('Map elevation')
@@ -285,8 +292,8 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
 
         plt.tight_layout()
         # save fig
-        plt.savefig(os.path.join(args.results_folder, 'map_elevation.png'))
-        plt.savefig(os.path.join(args.results_folder, 'map_elevation.svg'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
 
         # show plot
         plt.show()

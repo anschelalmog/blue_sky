@@ -16,8 +16,6 @@ def jac_north(psi, theta, phi):
 def jac_east(psi, theta, phi):
     return sind(psi) * sind(theta) * cosd(phi) - cosd(psi) * sind(phi)
 
-
-# TODO: check where does the state updates by the euler angels
 class IEKF:
     def __init__(self, args):
         self.run_points = args.run_points

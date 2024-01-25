@@ -60,7 +60,7 @@ def set_settings():
         config.init_lon = 23.5  # initial Longitude, in [deg]
         config.init_height = 5000  # flight height at start, in [m]
         config.avg_spd = 250  # flight average speed, [in m/sec]
-        config.psi = 45  # Yaw at start, in [deg]
+        config.psi = 22  # Yaw at start, in [deg]
         config.theta = 0  # Pitch at start, in [deg]
         config.phi = 0  # Roll at start, in [deg]
     else:

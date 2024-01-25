@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
-from src.utils import cosd, sind
+from src.utils import cosd, sind, get_mpd
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 
@@ -94,8 +94,13 @@ class CreateTraj(BaseTraj):
         self.pos.north = map_data.ax_north[x] + self.vel.north * self.time_vec
         self.pos.east = map_data.ax_east[x] + self.vel.east * self.time_vec
 
-        self.pos.lat = np.linspace(self.init_lat, final_lat, self.pos.north.size)
-        self.pos.lon = np.linspace(self.init_lon, final_lon, self.pos.east.size)
+        mpd_N, mpd_E = get_mpd(self.init_lat)
+        pos_final_lat = self.init_lat + self.avg_spd / mpd_N * sind(self.init_psi) * self.time_vec[-1]
+        pos_final_lon = self.init_lon + self.avg_spd / mpd_E * cosd(self.init_psi) * self.time_vec [-1]
+
+        # Use these final positions to create the latitude and longitude arrays
+        self.pos.lat = np.linspace(self.init_lat, pos_final_lat, self.run_points)
+        self.pos.lon = np.linspace(self.init_lon, pos_final_lon, self.run_points)
 
         self.mpd_north = self.pos.north / self.pos.lat  # [m/deg]
         self.mpd_east = self.pos.east / self.pos.lon  # [m/deg]

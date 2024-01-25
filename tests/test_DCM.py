@@ -49,22 +49,6 @@ def test_roll_rotation(rot_ax, roll, expected_dcm):
     assert allclose(dcm, expected_dcm)
 
 
-#todo: ask Oshra if the projection on the axis should after to DCM function
-#      and not inside to function
-
-# @pytest.mark.parametrize(
-#     "yaw, pitch, roll, expected",
-#     [(0,  0, 0, array([1, 0, 0])),
-#      (90, 0, 0, array([1, 0, 0])),
-#      (0, 90, 0, array([1, 0, 0])),
-#      (0,  0, 180, array([1, 0, 0]))
-#      ])
-# def test_inverse_rotation(yaw, pitch, roll, expected):
-#     dcm = euler_to_dcm("north", yaw, pitch, roll)
-#     inv_dcm = euler_to_dcm("north", -yaw, -pitch, -roll)
-#     result = dcm * inv_dcm
-#     assert allclose(result, expected)
-
 def test_inverse_rotation():
     yaw, pitch, roll = 0, 0, 0
     dcm = euler_to_dcm("north", yaw, pitch, roll)
