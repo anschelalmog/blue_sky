@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 from scipy.interpolate import interp1d, RegularGridInterpolator
-from src.utils import sind, cosd, euler_to_dcm
+from src.utils import sind, cosd, DCM
 
 
 def jac_north(psi, theta, phi):
@@ -43,9 +43,10 @@ class PinPoint:
             lat, lon = latV[i], lonV[i]  # [deg]
             psi, theta, phi = psiV[i], thetaV[i], phiV[i]
 
-            dNp, dEp = dR * jac_north(psi, theta, phi), dR * jac_east(psi, theta, phi)  # [m]
+            dcm = DCM(yaw=traj.euler.psi[i], pitch=traj.euler.theta[i], roll=traj.euler.phi[i])
+            dNp, dEp = dR * dcm.rot_north(), dR * dcm.rot_east()  # [m]
             dLat, dLon = dNp / map_data.mpd_north[i], dEp / map_data.mpd_east[i]  # [deg]
-            lat_tag, lon_tag = lat + dLat, lon + dLon
+            lat_tag, lon_tag = latV[i] + dLat, lonV[i] + dLon
 
             # height map data for the alleged pinpoint ( for each lat, lon along dR)
             interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)

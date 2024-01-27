@@ -42,7 +42,7 @@ class Covariances(BaseTraj):
 
 
 def plot_results(args, map_data, ground_truth, measurements, estimation_results, errors, covars):
-    os.makedirs('Results', exist_ok=True)
+    os.makedirs('out', exist_ok=True)
     repr(args.plots)
 
     if args.plots['plot map']:
