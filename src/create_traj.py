@@ -82,26 +82,16 @@ class CreateTraj(BaseTraj):
         """
         Update position vectors considering constant acceleration.
         """
-        # Calculate final latitude and longitude after the entire trajectory
-        mpd_N, mpd_E = get_mpd(self.init_lat)
-        final_lat = self.init_lat + self.avg_spd / mpd_N * sind(self.init_psi) * self.time_vec[-1]
-        final_lon = self.init_lon + self.avg_spd / mpd_E * cosd(self.init_psi) * self.time_vec[-1]
-
-        # Initialize positions with constant acceleration formula: x = x_0 + v_0*t + 0.5*a*t^2
-        self.pos.north = self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
-        self.pos.east = self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
-        self.pos.h_asl = self.init_height - self.vel.down[0] * self.time_vec - 0.5 * self.acc_down * self.time_vec ** 2
-
-        # Convert North and East displacements to latitude and longitude
-        self.pos.lat = self.init_lat + self.pos.north / mpd_N
-        self.pos.lon = self.init_lon + self.pos.east / mpd_E
-
-        mpd_N, mpd_E = get_mpd(self.init_lat)
+        self.mpd_north, self.mpd_east = get_mpd(self.init_lat)
+        # X = X_0 + V_0 * t  + 0.5 * a * (t^2)
         self.pos.north = self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
         self.pos.east = self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
         self.pos.h_asl = self.init_height - 0.5 * self.acc_down * self.time_vec ** 2
-        self.pos.lat = self.init_lat + self.pos.north / mpd_N
-        self.pos.lon = self.init_lon + self.pos.east / mpd_E
+        self.pos.lat = self.init_lat + self.pos.north / self.mpd_north
+        self.pos.lon = self.init_lon + self.pos.east / self.mpd_east
+
+        self.mpd_north = self.pos.north / self.pos.lat
+        self.mpd_east = self.pos.east / self.pos.lon
 
     def _create_traj(self, map_data):
         """
