@@ -49,7 +49,8 @@ def set_settings():
 
     # Kalman Filter Settings
     parser.add_argument('--kf_type', type=str, default='IEKF', help='kalman filter type, format: IEKF or UKF')
-    # dX = [delP_North, delP_East, delH, delV_North, delV_East, delV_Down] , space state vector
+    # dX = [delP_North, delP_East, delH, delV_North, delV_East, delV_Down, acc_North, acc_East, acc_Down,
+    #                                                                           yaw, pitch, roll] , space state vector
     parser.add_argument('--kf_state_size', type=int, default=12, help='number of state estimation')
 
     config = parser.parse_args()

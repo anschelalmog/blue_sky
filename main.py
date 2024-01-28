@@ -2,19 +2,20 @@ import sys
 import time
 from matplotlib import pyplot as plt
 import os
-
+#
 from src.data_loaders import Map, set_settings
 from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
 # added comment to push again
+
+
 if __name__ == '__main__':
     time_start = time.time()
     args = set_settings()  # Set the system settings
     map_data = Map(args).load()  # Load the map data using the provided settings
 
-    args.psi = 0
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
 
