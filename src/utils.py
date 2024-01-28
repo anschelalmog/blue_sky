@@ -86,19 +86,19 @@ class DCM:
 
         return rot_z @ rot_y @ rot_x
 
-    def rot_axis(self, rotation_axis: str):
+    def _rot_axis(self, rotation_axis: str):
         assert rotation_axis in ["north", "east", "down"], "Invalid rotation axis"
         axis_vector = [rotation_axis == "north", rotation_axis == "east", rotation_axis == "down"]
         return self._dcm @ axis_vector
 
     def rot_north(self):
-        return self.rot_axis("north")[0]
+        return self._rot_axis("north")[0]
 
     def rot_east(self):
-        return self.rot_axis("east")[1]
+        return self._rot_axis("east")[1]
 
     def rot_down(self):
-        return self.rot_axis("down")[2]
+        return self._rot_axis("down")[2]
 
     @property
     def matrix(self):

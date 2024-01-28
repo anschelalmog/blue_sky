@@ -13,7 +13,7 @@ from src.utils import DCM
         ("down", array([0, 0, 1]))
     ])
 def test_axis_vector(direction, expected_dcm):
-    assert allclose(DCM(0, 0, 0).rot_axis(direction), expected_dcm)
+    assert allclose(DCM(0, 0, 0)._rot_axis(direction), expected_dcm)
 
 
 # Test for yaw rotation
@@ -76,4 +76,4 @@ def test_invalid_input_type():
 
 def test_invalid_axis_input():
     with pytest.raises(AssertionError):
-        DCM(0, 0, 0).rot_axis("invalid")
+        DCM(0, 0, 0)._rot_axis("invalid")
