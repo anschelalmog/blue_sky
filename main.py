@@ -21,7 +21,6 @@ if __name__ == '__main__':
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
 
-
     if args.kf_type == 'IEKF':
         # runs Iterated Extended Kalman Filter
         estimation_results = IEKF(args).run(map_data, meas_traj)
