@@ -122,8 +122,9 @@ class IEKF:
         self.params = IEKFParams(self)
 
         self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2]), 2)
-        self.params.Q = np.power(np.diag([0, 0, 0, 1, 1, 1]), 1e-6)
+        self.params.Q = np.power(np.diag([0, 0, 0, 1, 1, 1]), 1e-7)
         # Dynamic Equation: linear motion
+        # todo: expend matrix
         # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
         self.params.Phi = np.eye(self.state_size)
         self.params.Phi[0][3] = self.del_t

@@ -21,6 +21,7 @@ if __name__ == '__main__':
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
 
+    time.sleep(0.1)
     if args.kf_type == 'IEKF':
         # runs Iterated Extended Kalman Filter
         estimation_results = IEKF(args).run(map_data, meas_traj)
@@ -44,3 +45,4 @@ if __name__ == '__main__':
     covariances = Covariances(estimation_results.params.P_est)
 
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
+    pass
