@@ -50,7 +50,7 @@ def set_settings():
     # Kalman Filter Settings
     parser.add_argument('--kf_type', type=str, default='IEKF', help='kalman filter type, format: IEKF or UKF')
     # dX = [delP_North, delP_East, delH, delV_North, delV_East, delV_Down] , space state vector
-    parser.add_argument('--kf_state_size', type=int, default=6, help='number of state estimation')
+    parser.add_argument('--kf_state_size', type=int, default=12, help='number of state estimation')
 
     config = parser.parse_args()
     # Flight Settings
@@ -63,6 +63,12 @@ def set_settings():
         config.psi = 22  # Yaw at start, in [deg]
         config.theta = 0  # Pitch at start, in [deg]
         config.phi = 0  # Roll at start, in [deg]
+        config.acc_north = 0
+        config.acc_east = 0
+        config.acc_down = 0
+        config.psi_dot = 0
+        config.theta_dot = 0
+        config.phi_dot = 0
     else:
         pass
 

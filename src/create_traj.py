@@ -10,29 +10,26 @@ class CreateTraj(BaseTraj):
         super().__init__(args.run_points)
         self.run_points = args.run_points
         self.time_vec = args.time_vec
-        #
+        # position
         self.init_lat = args.init_lat
         self.init_lon = args.init_lon
         self.init_height = args.init_height
-        #
+        # velocity
         self.avg_spd = args.avg_spd
-        #
+        self.acc_north = args.acc_north
+        self.acc_east = args.acc_east
+        self.acc_down = args.acc_down
+        # euler angels
         self.init_psi = args.psi
         self.init_theta = args.theta
         self.init_phi = args.phi
-        #
+        self.psi_dot = args.psi_dot
+        self.theta_dot = args.theta_dot
+        self.phi_dot = args.phi_dot
+
         self.pinpoint = None
 
-    def linear(self, map_data):
-        # assuming constant velocity, straight flight
-        self._create_euler_linear()
-        self._create_vel_linear()
-        self._create_pos_linear(map_data)
-        self._create_traj_linear(map_data)
-        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
-        return self
-
-    def _create_euler_linear(self):
+    def _create_euler(self):
         """
             creating euler angels vectors
             assuming: straight flight
@@ -56,11 +53,11 @@ class CreateTraj(BaseTraj):
                     /           \|
                     X                 v Yaw (ψ)
         """
-        self.euler.psi = self.init_psi * np.ones(self.run_points)  # [deg]
-        self.euler.theta = self.init_theta * np.ones(self.run_points)  # [deg]
-        self.euler.phi = self.init_phi * np.ones(self.run_points)  # [deg]
+        self.euler.psi = self.init_psi * self.psi_dot * self.time_vec  # [deg]
+        self.euler.theta = self.init_theta + self.theta_dot * self.time_vec  # [deg]
+        self.euler.phi = self.init_phi + self.psi_dot * self.time_vec  # [deg]
 
-    def _create_vel_linear(self):
+    def _create_vel(self):
         """
            creating velocity vectors
            assuming: straight flight, constant velocity
@@ -76,61 +73,51 @@ class CreateTraj(BaseTraj):
                 +----------------> East axis
                     sin
         """
-        self.vel.north = self.avg_spd * cosd(self.init_psi) * np.ones(self.run_points)  # [m/s]
-        self.vel.east = self.avg_spd * sind(self.init_psi) * np.ones(self.run_points)  # [m/s]
-        self.vel.down = self.avg_spd * sind(self.init_theta) * np.ones(self.run_points)  # [m/s]
+        # assuming constant acceleration over small differences
+        self.vel.north = self.avg_spd * cosd(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
+        self.vel.east = self.avg_spd * sind(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
+        self.vel.down = self.vel.down[0] + self.acc_north * self.time_vec  # [m/s]
 
-    def _create_pos_linear(self, map_data):
+    def _create_pos(self, map_data):
         """
-        creating position vectors
-        assuming: straight flight, constant velocity
+        Update position vectors considering constant acceleration.
         """
-        final_lat = map_data.final_pos[0]
-        final_lon = map_data.final_pos[1]
-        self.pos.h_asl = self.init_height * np.ones(self.run_points)
+        # Calculate final latitude and longitude after the entire trajectory
+        mpd_N, mpd_E = get_mpd(self.init_lat)
+        final_lat = self.init_lat + self.avg_spd / mpd_N * sind(self.init_psi) * self.time_vec[-1]
+        final_lon = self.init_lon + self.avg_spd / mpd_E * cosd(self.init_psi) * self.time_vec[-1]
 
-        # 501 arbitrary to avoid interpolation problems later
-        x = 501
-        self.pos.north = map_data.ax_north[x] + self.vel.north * self.time_vec
-        self.pos.east = map_data.ax_east[x] + self.vel.east * self.time_vec
+        # Initialize positions with constant acceleration formula: x = x_0 + v_0*t + 0.5*a*t^2
+        self.pos.north = self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
+        self.pos.east = self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
+        self.pos.h_asl = self.init_height - self.vel.down[0] * self.time_vec - 0.5 * self.acc_down * self.time_vec ** 2
+
+        # Convert North and East displacements to latitude and longitude
+        self.pos.lat = self.init_lat + self.pos.north / mpd_N
+        self.pos.lon = self.init_lon + self.pos.east / mpd_E
 
         mpd_N, mpd_E = get_mpd(self.init_lat)
-        pos_final_lat = self.init_lat + self.avg_spd / mpd_N * sind(self.init_psi) * self.time_vec[-1]
-        pos_final_lon = self.init_lon + self.avg_spd / mpd_E * cosd(self.init_psi) * self.time_vec [-1]
+        self.pos.north = self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
+        self.pos.east = self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
+        self.pos.h_asl = self.init_height - 0.5 * self.acc_down * self.time_vec ** 2
+        self.pos.lat = self.init_lat + self.pos.north / mpd_N
+        self.pos.lon = self.init_lon + self.pos.east / mpd_E
 
-        # Use these final positions to create the latitude and longitude arrays
-        self.pos.lat = np.linspace(self.init_lat, pos_final_lat, self.run_points)
-        self.pos.lon = np.linspace(self.init_lon, pos_final_lon, self.run_points)
-
-        self.mpd_north = self.pos.north / self.pos.lat  # [m/deg]
-        self.mpd_east = self.pos.east / self.pos.lon  # [m/deg]
-
-    def _create_traj_linear(self, map_data):
+    def _create_traj(self, map_data):
         """
-              Interpolate a map grid at the trajectory points and calculate the corresponding trajectory heights.
-             param:
-                 map_data (MapData): An instance of a class that contains the map grid data
-             return:
-                 h_map -  A 2D array of the interpolated map grid at the latitude and longitude points
-                         corresponding to the trajectory
-                 traj_heights - A 1D array of interpolated heights at the trajectory's specific latitude
-                                and longitude points
-             """
-        interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
-        points = np.array(np.meshgrid(self.pos.lat, self.pos.lon)).T.reshape(-1, 2)
-        self.pos.h_map_grid = interpolator(points).reshape(self.pos.lat.size, self.pos.lon.size)
-        self.pos.h_map = interpolator(np.vstack((self.pos.lat, self.pos.lon)).T)
+        Interpolate map data at trajectory points to calculate corresponding heights.
+        Uses updated latitudes and longitudes from _create_pos_linear function.
 
-    def constant_acc(self, map_data):
-        self._create_euler_acc()
-        self._create_vel_acc()
-        self._create_traj_acc(map_data)
+        :param map_data: An instance containing the map grid data.
+        """
+        interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
+        points = np.vstack((self.pos.lat, self.pos.lon)).T
+        self.pos.h_map = interpolator(points)
+
+    def create(self, map_data):
+        self._create_euler()
+        self._create_vel()
+        self._create_pos(map_data)
+        self._create_traj(map_data)
         self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
         return self
-
-    def _create_euler_acc(self):
-        pass
-    def _create_vel_acc(self):
-        pass
-    def _create_traj_acc(self, map_data):
-        pass

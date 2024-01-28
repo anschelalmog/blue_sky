@@ -121,17 +121,35 @@ class IEKF:
     def _initialize_params(self):
         self.params = IEKFParams(self)
 
-        self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2]), 2)
-        self.params.Q = np.power(np.diag([0, 0, 0, 1, 1, 1]), 1e-7)
+        # initial error in pos(north, east, down) in[m],
+        #                  vel(north, east, down) in [m/s],
+        #                  acc(north, east, down) in [m/s^2],
+        #                  euler(yaw, pitch,roll) in [deg]
+        self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2, 1, 1, 1, 1, 1, 1]), 2)
+        #
+        self.params.Q = np.power(np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 1e-7)
         # Dynamic Equation: linear motion
-        # todo: expend matrix
-        # to commit
         # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
         self.params.Phi = np.eye(self.state_size)
         self.params.Phi[0][3] = self.del_t
         self.params.Phi[1][4] = self.del_t
         self.params.Phi[2][5] = self.del_t
 
+        # Set the diagonal elements for the positions, velocities, and Euler angles to 1
+        self.params.Phi = np.eye(self.state_size)
+
+        # Update the matrix for positions influenced by velocities
+        self.params.Phi[0, 3] = self.params.Phi[1, 4] = self.params.Phi[2, 5] = self.del_t
+
+        # Update the matrix for positions influenced by accelerations
+        self.params.Phi[0, 6] = self.params.Phi[1, 7] = self.params.Phi[2, 8] = 0.5 * self.del_t ** 2
+
+        # Update the matrix for velocities influenced by accelerations
+        self.params.Phi[3, 6] = self.params.Phi[4, 7] = self.params.Phi[5, 8] = self.del_t
+
+        # Update the matrix for linearly changing Euler angles
+        self.params.Phi[9, 10] = self.params.Phi[10, 11] = self.del_t
+        print(self.params.Phi)
     def _predict_state(self, meas):
         """
         compute estimated velocities and positions based on previous and current measurements
