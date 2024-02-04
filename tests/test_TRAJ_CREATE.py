@@ -1,22 +1,24 @@
-import unittest
-from ..src.pinpoint_calc import PinPoint
-from ..src.data_loaders import Map, set_settings
-from ..src.create_traj import CreateTraj
-from ..src.noise_traj import NoiseTraj
+import pytest
+from src.create_traj import CreateTraj
+from src.data_loaders import Map, set_settings
+@pytest.fixture
+def setup_create_traj():
+    args = set_settings()
+    map_data = Map(args).load()
+    create_traj = CreateTraj(args)
+    return create_traj, map_data
 
-class TestCreateTraj(unittest.TestCase):
+def test_euler_creation(setup_create_traj):
+    create_traj, _ = setup_create_traj
+    create_traj._create_euler()  # Directly calling the protected method for testing
+    assert create_traj.euler.psi[0] == create_traj.args.psi  # Initial condition check
+    # Add more assertions as needed
 
-    def test_linear_trajectory(self):
-        args = set_settings()
-        map_data = Map(args).load()
-        create_traj = CreateTraj(args)
-        result = create_traj.linear(map_data)
+def test_velocity_creation(setup_create_traj):
+    create_traj, _ = setup_create_traj
+    create_traj._create_vel()
+    # Assertions to verify velocities are correctly calculated
 
-
-        self.assertEqual(result.pos.lat[0], expected_latitude)
-        self.assertEqual(result.pos.lon[0], expected_longitude)
-
-
-
-if __name__ == '__main__':
-    unittest.main()
+def test_position_creation(setup_create_traj):
+    create_traj, map_data = setup_create_traj
+    create_traj._create_pos

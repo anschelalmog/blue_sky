@@ -53,41 +53,51 @@ def set_settings():
     #                                                                           yaw, pitch, roll] , space state vector
     parser.add_argument('--kf_state_size', type=int, default=12, help='number of state estimation')
 
-    config = parser.parse_args()
+    args, unknown = parser.parse_known_args()
+
     # Flight Settings
-    if not config.traj_from_file:
-        # todo: add to variable measures in deg
-        config.init_lat = 31.5  # initial Latitude, in [deg]
-        config.init_lon = 23.5  # initial Longitude, in [deg]
-        config.init_height = 5000  # flight height at start, in [m]
-        config.avg_spd = 250  # flight average speed, [in m/sec]
-        config.psi = 22  # Yaw at start, in [deg]
-        config.theta = 0  # Pitch at start, in [deg]
-        config.phi = 0  # Roll at start, in [deg]
-        config.acc_north = 0
-        config.acc_east = 0
-        config.acc_down = 0
-        config.psi_dot = 0
-        config.theta_dot = 0
-        config.phi_dot = 0
-    else:
+    if not args.traj_from_file:
+        parser.add_argument('--init_lat', type=float, default=31.5, help='initial Latitude, in [deg]')
+        parser.add_argument('--init_long', type=float, default=23.5, help='initial Longitude, in [deg]')
+        parser.add_argument('--init_height', type=float, default=5000, help='flight height at start, in [m]')
+        #
+        parser.add_argument('--avg_spd', type=float, default=250, help='flight average speed, [in m/sec]')
+        parser.add_argument('--psi', type=float, default=45, help='Yaw at start, in [deg]')
+        parser.add_argument('--theta', type=float, default=0, help='Pitch at start, in [deg]')
+        parser.add_argument('--phi', type=float, default=0, help='Roll at start, in [deg]')
+        #
+        parser.add_argument('--acc_north', type=float, default=0, help='acceleration in the north - south at start, '
+                                                                       'in [m/s^2]')
+        parser.add_argument('--acc_east', type=float, default=0, help='acceleration in the east - west axis at start, '
+                                                                      'in [m/s^2]')
+        parser.add_argument('--acc_down', type=float, default=0, help='acceleration in vertical axis at start, '
+                                                                      'in [m/s^2]')
+        #
+        parser.add_argument('--psi_dot', type=float, default=0, help='change in psi during flight, '
+                                                                      'in [deg/s]')
+        parser.add_argument('--theta_dot', type=float, default=0, help='change in theta during flight, '
+                                                                      'in [deg/s]')
+        parser.add_argument('--phi_dot', type=float, default=0, help='change in phi during flight, '
+                                                                      'in [deg/s]')
+    else:  # already read from file
         pass
 
     # Other Defaults
-    config.run_points = int(config.time_end / config.time_res)
-    config.time_vec = np.arange(config.time_init, config.time_end, config.time_res)
-    config.map_res = 3 if config.map_level == 1 else 1
-    config.results_folder = os.path.join(os.getcwd(), 'out')
-    config.imu_errors = {
-        'velocity': config.flg_err_vel * config.val_err_vel,
-        'initial_position': config.flg_err_pos * config.val_err_pos,
-        'euler_angles': config.flg_err_eul * config.val_err_eul,
-        'barometer_bias': config.flg_err_baro_bias * config.val_err_baro_bias,
-        'barometer_noise': config.flg_err_baro_noise * config.val_err_baro_noise,
-        'altimeter_noise': config.flg_err_alt * config.val_err_alt,
+    args = parser.parse_args()
+    args.run_points = int(args.time_end / args.time_res)
+    args.time_vec = np.arange(args.time_init, args.time_end, args.time_res)
+    args.map_res = 3 if args.map_level == 1 else 1
+    args.results_folder = os.path.join(os.getcwd(), 'out')
+    args.imu_errors = {
+        'velocity': args.flg_err_vel * args.val_err_vel,
+        'initial_position': args.flg_err_pos * args.val_err_pos,
+        'euler_angles': args.flg_err_eul * args.val_err_eul,
+        'barometer_bias': args.flg_err_baro_bias * args.val_err_baro_bias,
+        'barometer_noise': args.flg_err_baro_noise * args.val_err_baro_noise,
+        'altimeter_noise': args.flg_err_alt * args.val_err_alt,
     }
 
-    return config
+    return args
 
 
 def generate_map(_map, flat=True, to_plot=False):

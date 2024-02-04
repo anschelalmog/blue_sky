@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import RegularGridInterpolator
 from src.utils import cosd, sind, get_mpd
 from src.base_traj import BaseTraj
@@ -104,10 +106,81 @@ class CreateTraj(BaseTraj):
         points = np.vstack((self.pos.lat, self.pos.lon)).T
         self.pos.h_map = interpolator(points)
 
+
+
+
+    def plot_trajectory(self, map_data):
+        """
+        Plots the trajectory on the map in both 2D and 3D as subplots of the same figure.
+
+        :param map_data: The map data containing the grid and axis information.
+        """
+        fig = plt.figure(figsize=(16, 8))
+
+        # 2D Plot as the first subplot
+        ax1 = fig.add_subplot(211)
+        X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
+        ax1.contourf(X, Y, map_data.grid, cmap='terrain', alpha=0.5)
+        ax1.plot(self.pos.lon, self.pos.lat, 'r-', label='2D Trajectory')
+        ax1.set_xlabel('Longitude [deg]')
+        ax1.set_ylabel('Latitude [deg]')
+        ax1.set_title('2D View of Trajectory on Map')
+        ax1.legend()
+
+        # 3D Plot as the second subplot
+        ax2 = fig.add_subplot(212, projection='3d')
+        ax2.plot_surface(X, Y, map_data.grid, cmap='terrain', alpha=0.5)
+        ax2.plot(self.pos.lon, self.pos.lat, self.pos.h_asl, 'r-', label='3D Trajectory')
+        ax2.set_xlabel('Longitude [deg]')
+        ax2.set_ylabel('Latitude [deg]')
+        ax2.set_zlabel('Altitude [m]')
+        ax2.set_title('3D View of Trajectory on Map')
+        ax2.legend()
+
+        # Set the overall figure title
+        title = 'Trajectory Visualization'
+        fig.suptitle(title, fontsize=16)
+        plt.savefig(f'{title}.png')
+        plt.show()
+
+    def plot_views(self, map_data):
+        """
+        Plots the trajectory from North and East views.
+
+        :param map_data: The map data containing the grid and axis information.
+        """
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+
+        # North View: Looking from North towards South
+        # Here, we plot East vs. Altitude
+        ax1.plot(self.pos.east, self.pos.h_asl, 'b-', label='View from North')
+        ax1.set_xlabel('East [m]')
+        ax1.set_ylabel('Altitude [m]')
+        ax1.set_title('View from North')
+        ax1.legend()
+        ax1.grid(True)
+
+        # East View: Looking from East towards West
+        # Here, we plot North vs. Altitude
+        ax2.plot(self.pos.north, self.pos.h_asl, 'g-', label='View from East')
+        ax2.set_xlabel('North [m]')
+        ax2.set_ylabel('Altitude [m]')
+        ax2.set_title('View from East')
+        ax2.legend()
+        ax2.grid(True)
+
+        # Set the overall figure title
+        title = 'Trajectory Views'
+        fig.suptitle(title, fontsize=16)
+        plt.savefig(f'{title}.png')
+
+        plt.show()
+
     def create(self, map_data):
         self._create_euler()
         self._create_vel()
         self._create_pos(map_data)
         self._create_traj(map_data)
-        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
+
+        # self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
         return self

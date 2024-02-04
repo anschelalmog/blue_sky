@@ -8,7 +8,6 @@ from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
-# added comment to push again
 
 
 if __name__ == '__main__':
@@ -18,7 +17,8 @@ if __name__ == '__main__':
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
-
+    # true_traj.plot_trajectory(map_data)
+    # true_traj.plot_views(map_data)
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
 
