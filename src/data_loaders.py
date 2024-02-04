@@ -53,12 +53,12 @@ def set_settings():
     #                                                                           yaw, pitch, roll] , space state vector
     parser.add_argument('--kf_state_size', type=int, default=12, help='number of state estimation')
 
-    args, unknown = parser.parse_known_args()
+    args = parser.parse_args()
 
     # Flight Settings
     if not args.traj_from_file:
         parser.add_argument('--init_lat', type=float, default=31.5, help='initial Latitude, in [deg]')
-        parser.add_argument('--init_long', type=float, default=23.5, help='initial Longitude, in [deg]')
+        parser.add_argument('--init_lon', type=float, default=23.5, help='initial Longitude, in [deg]')
         parser.add_argument('--init_height', type=float, default=5000, help='flight height at start, in [m]')
         #
         parser.add_argument('--avg_spd', type=float, default=250, help='flight average speed, [in m/sec]')

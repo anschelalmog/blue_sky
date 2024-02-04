@@ -149,7 +149,7 @@ class IEKF:
 
         # Update the matrix for linearly changing Euler angles
         self.params.Phi[9, 10] = self.params.Phi[10, 11] = self.del_t
-        print(self.params.Phi)
+
     def _predict_state(self, meas):
         """
         compute estimated velocities and positions based on previous and current measurements

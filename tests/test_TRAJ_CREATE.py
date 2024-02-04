@@ -10,8 +10,8 @@ def setup_create_traj():
 
 def test_euler_creation(setup_create_traj):
     create_traj, _ = setup_create_traj
-    create_traj._create_euler()  # Directly calling the protected method for testing
-    assert create_traj.euler.psi[0] == create_traj.args.psi  # Initial condition check
+    create_traj._create_euler()  #
+    assert create_traj.euler.psi[0] == create_traj.args.psi
     # Add more assertions as needed
 
 def test_velocity_creation(setup_create_traj):

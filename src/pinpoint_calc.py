@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 from scipy.interpolate import interp1d, RegularGridInterpolator
 from src.utils import sind, cosd, DCM
-
+from icecream import ic
 
 def jac_north(psi, theta, phi):
     return cosd(psi) * sind(theta) * cosd(phi) + sind(psi) * sind(phi)
@@ -52,12 +52,14 @@ class PinPoint:
             interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
             traj_heights = interpolator(np.vstack((lat_tag, lon_tag)).T)
             dH_star = traj.pos.h_asl[i] - traj_heights  # above alleged ground
-
             dH_tag = dR * cosd(theta) * cosd(phi)
             interpolated_height = interp1d(dH_star - dH_tag, dR)
-
-            self.range[i] = interpolated_height(0).item()  # Range to pinpoint
-
+            try:
+                self.range[i] = interpolated_height(0).item()  # Range to pinpoint
+            except ValueError:
+                print('\n')
+                ic(i)
+                breakpoint()
             self.delta_north[i] = interpolated_height(0) * jac_north(psi, theta, phi) / traj.mpd_north[i]
             self.delta_east[i] = interpolated_height(0) * jac_east(psi, theta, phi) / traj.mpd_east[i]
 
@@ -66,6 +68,10 @@ class PinPoint:
             self.lon[i] = lon + self.delta_east[i]
 
             # Ground Elevation from Map at PinPoint % height map data for the pinpoint
-            self.h_map[i] = interpolator((self.lat[i], self.lon[i])).item()
-
+            try:
+                self.h_map[i] = interpolator((self.lat[i], self.lon[i])).item()
+            except ValueError:
+                print('\n')
+                ic(i)
+                breakpoint()
         return self

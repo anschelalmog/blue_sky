@@ -14,11 +14,13 @@ if __name__ == '__main__':
     time_start = time.time()
     args = set_settings()  # Set the system settings
     map_data = Map(args).load()  # Load the map data using the provided settings
-
+    args.psi_dot = 5
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
-    # true_traj.plot_trajectory(map_data)
-    # true_traj.plot_views(map_data)
+    true_traj.plot_views(map_data)
+    true_traj.plot_trajectory(map_data)
+
+
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
 

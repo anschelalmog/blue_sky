@@ -55,7 +55,7 @@ class CreateTraj(BaseTraj):
                     /           \|
                     X                 v Yaw (ψ)
         """
-        self.euler.psi = self.init_psi * self.psi_dot * self.time_vec  # [deg]
+        self.euler.psi = self.init_psi + self.psi_dot * self.time_vec  # [deg]
         self.euler.theta = self.init_theta + self.theta_dot * self.time_vec  # [deg]
         self.euler.phi = self.init_phi + self.psi_dot * self.time_vec  # [deg]
 
@@ -78,7 +78,8 @@ class CreateTraj(BaseTraj):
         # assuming constant acceleration over small differences
         self.vel.north = self.avg_spd * cosd(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
         self.vel.east = self.avg_spd * sind(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
-        self.vel.down = self.vel.down[0] + self.acc_north * self.time_vec  # [m/s]
+        # self.vel.down = self.avg_spd * sind(self.init_phi) + self.acc_down * self.time_vec  # [m/s]
+        self.vel.down += self.acc_down * self.time_vec  # [m/s]
 
     def _create_pos(self, map_data):
         """
@@ -86,14 +87,16 @@ class CreateTraj(BaseTraj):
         """
         self.mpd_north, self.mpd_east = get_mpd(self.init_lat)
         # X = X_0 + V_0 * t  + 0.5 * a * (t^2)
-        self.pos.north = self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
-        self.pos.east = self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
-        self.pos.h_asl = self.init_height - 0.5 * self.acc_down * self.time_vec ** 2
-        self.pos.lat = self.init_lat + self.pos.north / self.mpd_north
-        self.pos.lon = self.init_lon + self.pos.east / self.mpd_east
+        self.pos.north = self.init_lat * self.mpd_north + self.vel.north[
+            0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
+        self.pos.east = self.init_lon * self.mpd_east + self.vel.east[
+            0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
+        self.pos.h_asl = self.init_height + self.vel.down[0] - 0.5 * self.acc_down * self.time_vec ** 2
 
-        self.mpd_north = self.pos.north / self.pos.lat
-        self.mpd_east = self.pos.east / self.pos.lon
+        self.pos.lat = self.pos.north / self.mpd_north
+        self.pos.lon = self.pos.east / self.mpd_east
+
+        self.mpd_north, self.mpd_east = get_mpd(self.pos.lat)
 
     def _create_traj(self, map_data):
         """
@@ -105,9 +108,6 @@ class CreateTraj(BaseTraj):
         interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
         points = np.vstack((self.pos.lat, self.pos.lon)).T
         self.pos.h_map = interpolator(points)
-
-
-
 
     def plot_trajectory(self, map_data):
         """
@@ -181,6 +181,5 @@ class CreateTraj(BaseTraj):
         self._create_vel()
         self._create_pos(map_data)
         self._create_traj(map_data)
-
-        # self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
+        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
         return self
