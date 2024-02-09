@@ -12,13 +12,39 @@ from src.outputs_utils import Errors, Covariances, plot_results
 
 if __name__ == '__main__':
     time_start = time.time()
-    args = set_settings()  # Set the system settings
-    map_data = Map(args).load()  # Load the map data using the provided settings
-    args.psi_dot = 5
+    # Set run settings
+    args = set_settings()
+    # Load the map data using the provided settings
+    map_data = Map().load(args)
     # Create the actual trajectory based on the map data and settings
+
+    args.psi = 0
+    args.theta = 1
+    args.phi = 0
+    args.acc_north = 0
+    args.acc_east = 0
+    args.acc_down = 0
+    args.psi_dot = 0
+    args.theta_dot = 0
+    args.phi_dot = 0
+
     true_traj = CreateTraj(args).create(map_data)
     true_traj.plot_views(map_data)
     true_traj.plot_trajectory(map_data)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     # Generate a noisy trajectory to simulate the sensor measurements
@@ -42,7 +68,6 @@ if __name__ == '__main__':
         'kalman gains': True,
         'map elevation': True,
     }
-
     used_traj = true_traj if true_traj is not None else meas_traj
     errors = Errors(used_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)

@@ -40,12 +40,12 @@ def set_settings():
     parser.add_argument('--flg_err_baro_bias', type=bool, default=False, help='flag error for barometer bias')
 
     # Errors Values
-    parser.add_argument('--val_err_pos', type=int, default=200, help='error for position, in [m]')
-    parser.add_argument('--val_err_vel', type=int, default=2, help='error for velocity, in [m/s]')
-    parser.add_argument('--val_err_alt', type=int, default=5, help='error for altimeter, in [m]')
-    parser.add_argument('--val_err_eul', type=int, default=0.05, help='error for euler angels, in [deg]')
-    parser.add_argument('--val_err_baro_noise', type=int, default=5, help='error for barometer, in [m]')
-    parser.add_argument('--val_err_baro_bias', type=int, default=5, help='error for barometer, in [m]')
+    parser.add_argument('--val_err_pos', type=float, default=200, help='error for position, in [m]')
+    parser.add_argument('--val_err_vel', type=float, default=2, help='error for velocity, in [m/s]')
+    parser.add_argument('--val_err_alt', type=float, default=5, help='error for altimeter, in [m]')
+    parser.add_argument('--val_err_eul', type=float, default=0.05, help='error for euler angels, in [deg]')
+    parser.add_argument('--val_err_baro_noise', type=float, default=5, help='error for barometer, in [m]')
+    parser.add_argument('--val_err_baro_bias', type=float, default=5, help='error for barometer, in [m]')
 
     # Kalman Filter Settings
     parser.add_argument('--kf_type', type=str, default='IEKF', help='kalman filter type, format: IEKF or UKF')
@@ -150,8 +150,7 @@ def generate_map(_map, flat=True, to_plot=False):
 
 
 class Map:
-    def __init__(self, args):
-        self.args = args
+    def __init__(self):
         self.lat_bounds = None
         self.lon_bounds = None
         self.final_pos = None
@@ -163,29 +162,29 @@ class Map:
         self.mpd_east = None
         self.grid = None
 
-    def load(self):
-        self._set_map_boundaries()
-        self._set_axis()
-        self._create_grid()
+    def load(self, args):
+        self._set_map_boundaries(args)
+        self._set_axis(args)
+        self._create_grid(args)
         return self
 
-    def _set_map_boundaries(self):
-        mpd_N, mpd_E = get_mpd(self.args.init_lat)
+    def _set_map_boundaries(self, args):
+        mpd_N, mpd_E = get_mpd(args.init_lat)
 
-        pos_final_lat = self.args.init_lat + self.args.avg_spd / mpd_N * sind(self.args.psi) * self.args.time_end
-        pos_final_lon = self.args.init_lon + self.args.avg_spd / mpd_E * cosd(self.args.psi) * self.args.time_end
+        pos_final_lat = args.init_lat + args.avg_spd / mpd_N * sind(args.psi) * args.time_end
+        pos_final_lon = args.init_lon + args.avg_spd / mpd_E * cosd(args.psi) * args.time_end
 
-        init_lat = np.floor(np.min([self.args.init_lat, pos_final_lat]))
-        final_lat = np.ceil(np.max([self.args.init_lat, pos_final_lat]))
-        init_lon = np.floor(np.min([self.args.init_lon, pos_final_lon]))
-        final_lon = np.ceil(np.max([self.args.init_lon, pos_final_lon]))
+        init_lat = np.floor(np.min([args.init_lat, pos_final_lat]))
+        final_lat = np.ceil(np.max([args.init_lat, pos_final_lat]))
+        init_lon = np.floor(np.min([args.init_lon, pos_final_lon]))
+        final_lon = np.ceil(np.max([args.init_lon, pos_final_lon]))
 
         self.lat_bounds = [init_lat, final_lat]
         self.lon_bounds = [init_lon, final_lon]
         self.final_pos = [pos_final_lat, pos_final_lon]
 
-    def _set_axis(self):
-        rate = self.args.map_res / 3600
+    def _set_axis(self, args):
+        rate = args.map_res / 3600
         init_lat, final_lat = self.lat_bounds[0], self.lat_bounds[1]
         init_lon, final_lon = self.lon_bounds[0], self.lon_bounds[1]
 
@@ -199,11 +198,11 @@ class Map:
         self.ax_north = self.ax_lat * self.mpd_north
         self.ax_east = self.ax_lon * self.mpd_east
 
-    def _create_grid(self):
+    def _create_grid(self, args):
         # Initialize bounds and tile settings
         min_lat_int, max_lat_int = map(int, (np.floor(self.lat_bounds[0]), np.ceil(self.lat_bounds[1])))
         min_lon_int, max_lon_int = map(int, (np.floor(self.lon_bounds[0]), np.ceil(self.lon_bounds[1])))
-        tile_length, map_level, ext = (1200, 1, 'dt1') if self.args.map_res == 3 else (3600, 3, 'dt2')
+        tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
         ext = 'mat'
         # Create an empty map grid
         map_full_tiles = np.zeros(
@@ -212,7 +211,7 @@ class Map:
         # Load map tiles and assemble the full map
         for e in range(min_lon_int, max_lon_int):
             for n in range(min_lat_int, max_lat_int):
-                tile_path = os.path.join(os.getcwd(), self.args.maps_dir, f'Level{map_level}', 'MAP00', 'DTED',
+                tile_path = os.path.join(os.getcwd(), args.maps_dir, f'Level{map_level}', 'MAP00', 'DTED',
                                          f'E0{e}',
                                          f'n{n}.{ext}')
                 tile_load = self._load_tile(tile_path, tile_length)
@@ -242,33 +241,3 @@ class Map:
 
 class TrajFromFile(BaseTraj):
     pass
-
-
-"""
-   fig = plt.figure('compare', figsize=(10, 12))
-    ax = fig.add_subplot(111)
-    ax.set_title('compare', fontsize=24, fontweight='bold')
-    X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
-    plt.grid(False)
-    ax.set_xlabel('Longitude [deg]')
-    ax.set_ylabel('Latitude [deg]')
-    markers = ['o', 's', '^']  # Circle, square, and triangle markers
-    line_styles = ['-', '--', '-.']  # Solid, dashed, and dash-dot lines
-
-    for psi_val, marker, line_style in zip([45, 22, 0], markers, line_styles):
-        args.psi = psi_val
-        modified_traj = CreateTraj(args).create_linear(map_data)
-
-        # Use the marker and line style in the plot
-        ax.plot(modified_traj.pos.lon, modified_traj.pos.lat,
-                linewidth=4, label=f'psi={psi_val}', marker=marker, linestyle=line_style)
-
-    # Legend
-    lgd = ax.legend(loc='best')
-    lgd.set_title('PATHS')
-    lgd.get_frame().set_linewidth(1.0)
-    plt.tight_layout()
-    plt.savefig(os.path.join(args.results_folder, 'compare.png'))
-    plt.show()
-
-"""

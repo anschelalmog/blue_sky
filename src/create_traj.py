@@ -23,7 +23,8 @@ class CreateTraj(BaseTraj):
         self.acc_down = args.acc_down
         # euler angels
         self.init_psi = args.psi
-        self.init_theta = args.theta
+        self.init_theta = 3
+        # self.init_theta = args.theta
         self.init_phi = args.phi
         self.psi_dot = args.psi_dot
         self.theta_dot = args.theta_dot
@@ -33,8 +34,7 @@ class CreateTraj(BaseTraj):
 
     def _create_euler(self):
         """
-            creating euler angels vectors
-            assuming: straight flight
+        creating euler angels vectors
 
                           Z
                           ^
@@ -61,9 +61,7 @@ class CreateTraj(BaseTraj):
 
     def _create_vel(self):
         """
-           creating velocity vectors
-           assuming: straight flight, constant velocity
-
+        creating velocity vectors
                 # North axis
                 ^
                 |       /
@@ -75,7 +73,6 @@ class CreateTraj(BaseTraj):
                 +----------------> East axis
                     sin
         """
-        # assuming constant acceleration over small differences
         self.vel.north = self.avg_spd * cosd(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
         self.vel.east = self.avg_spd * sind(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
         # self.vel.down = self.avg_spd * sind(self.init_phi) + self.acc_down * self.time_vec  # [m/s]
@@ -85,13 +82,19 @@ class CreateTraj(BaseTraj):
         """
         Update position vectors considering constant acceleration.
         """
+        #todo: instead of using the arrays in [0] use the vector
         self.mpd_north, self.mpd_east = get_mpd(self.init_lat)
         # X = X_0 + V_0 * t  + 0.5 * a * (t^2)
-        self.pos.north = self.init_lat * self.mpd_north + self.vel.north[
-            0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
-        self.pos.east = self.init_lon * self.mpd_east + self.vel.east[
-            0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
+        self.pos.north = self.init_lat * self.mpd_north + self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
+        self.pos.east = self.init_lon * self.mpd_east + self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
         self.pos.h_asl = self.init_height + self.vel.down[0] - 0.5 * self.acc_down * self.time_vec ** 2
+
+        # Instead of using a single initial velocity value, use the entire velocity vector
+        self.pos.north = self.init_lat * self.mpd_north + np.cumsum(self.vel.north[:-1] + self.vel.north[1:]) / 2 * np.diff(self.time_vec)
+        self.pos.east = self.init_lon * self.mpd_east + np.cumsum(self.vel.east[:-1] + self.vel.east[1:]) / 2 * np.diff(self.time_vec)
+
+        # For downward velocity, considering it starts from a constant value and changes due to acceleration
+        self.pos.h_asl = self.init_height + np.cumsum(self.vel.down[:-1] + self.vel.down[1:]) / 2 * np.diff(self.time_vec)
 
         self.pos.lat = self.pos.north / self.mpd_north
         self.pos.lon = self.pos.east / self.mpd_east
@@ -182,4 +185,5 @@ class CreateTraj(BaseTraj):
         self._create_pos(map_data)
         self._create_traj(map_data)
         self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
+        self.pos.h_agl = self.pos.h_asl - self.pinpoint.h_map
         return self
