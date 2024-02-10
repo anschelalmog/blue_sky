@@ -4,7 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from icecream import ic
 
-from src.utils import cosd, sind
+from src.utils import cosd, sind, DCM
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 
@@ -15,6 +15,7 @@ def jac_north(psi, theta, phi):
 
 def jac_east(psi, theta, phi):
     return sind(psi) * sind(theta) * cosd(phi) - cosd(psi) * sind(phi)
+
 
 class IEKF:
     def __init__(self, args):
@@ -56,7 +57,8 @@ class IEKF:
                   Formula (3.3): P_k|k = (I - K_k * H_k) * P_k|k-1
                   Where I is the identity matrix.
 
-             This method iterates over the measurement points, applying these steps to estimate the vehicle's trajectory.
+             This method iterates over the measurement points, applying these steps to estimate the vehicle's
+             trajectory.
 
              Parameters:
              - map_data: Contains the map information necessary for navigation.
@@ -96,14 +98,16 @@ class IEKF:
             self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
             self._estimate_covariance(p_pre)
 
-
             self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]
             self._update_estimate_state(meas)
 
         return self
 
     def _initialize_traj(self, meas):
-        # Set initial values from meas
+        """
+        Set initial values from measurements
+
+        """
         self.traj.pos.lat[0] = meas.pos.lat[0]
         self.traj.pos.lon[0] = meas.pos.lon[0]
         self.traj.pos.h_asl[0] = meas.pos.h_asl[0]  # altitude
@@ -117,6 +121,10 @@ class IEKF:
         self.traj.pinpoint.delta_north[0] = meas.pinpoint.delta_north[0]
         self.traj.pinpoint.delta_east[0] = meas.pinpoint.delta_east[0]
         self.traj.pinpoint.h_map[0] = meas.pinpoint.h_map[0]
+        #
+        self.traj.euler.psi[0] = meas.euler.psi[0]
+        self.traj.euler.theta[0] = meas.euler.theta[0]
+        self.traj.euler.phi[0] = meas.euler.phi[0]
 
     def _initialize_params(self):
         self.params = IEKFParams(self)
@@ -159,6 +167,31 @@ class IEKF:
         :return: updating class
         """
         i = self.curr_state
+        # Update positions based on velocity and acceleration
+        self.traj.pos.lat[i] = (self.traj.pos.lat[i - 1] +
+                                (self.traj.vel.north[i - 1] * self.del_t +
+                                 0.5 * self.traj.acc.north[i - 1] * self.del_t**2) / meas.mpd_north[i])
+        self.traj.pos.lon[i] = (self.traj.pos.lon[i - 1] +
+                                (self.traj.vel.east[i - 1] * self.del_t +
+                                 0.5 * self.traj.acc.east[i - 1] * self.del_t**2) / meas.mpd_east[i])
+        self.traj.pos.h_asl[i] = (self.traj.pos.h_asl[i - 1] +
+                                  (self.traj.vel.down[i - 1] * self.del_t +
+                                   0.5 * self.traj.acc.down[i - 1] * self.del_t**2))
+
+        # Update velocities based on acceleration
+        self.traj.vel.north[i] = self.traj.vel.north[i - 1] + self.traj.acc.north[i - 1] * self.del_t
+        self.traj.vel.east[i] = self.traj.vel.east[i - 1] + self.traj.acc.east[i - 1] * self.del_t
+        self.traj.vel.down[i] = self.traj.vel.down[i - 1] + self.traj.acc.down[i - 1] * self.del_t
+    
+        # Assuming linear change in Euler angles
+        # Update based on change rates if available or assume constant rate
+        self.traj.euler.psi[i] = self.traj.euler.psi[i - 1] + (meas.euler.dpsi[i - 1] * self.del_t)
+        self.traj.euler.theta[i] = self.traj.euler.theta[i - 1] + (meas.euler.dtheta[i - 1] * self.del_t)
+        self.traj.euler.phi[i] = self.traj.euler.phi[i - 1] + (meas.euler.dphi[i - 1] * self.del_t)
+
+
+
+
         self.traj.vel.north[i] = self.traj.vel.north[i - 1] + meas.vel.north[i] - meas.vel.north[i - 1]
         self.traj.vel.east[i] = self.traj.vel.east[i - 1] + meas.vel.east[i] - meas.vel.east[i - 1]
         self.traj.vel.down[i] = self.traj.vel.down[i - 1] + meas.vel.down[i] - meas.vel.down[i - 1]
@@ -286,6 +319,7 @@ class IEKF:
         self.traj.pos.h_map[i] = self.traj.pos.h_asl[i] - self.traj.pos.h_agl[i]
         self.traj.pos.north[i] = self.traj.pos.lat[i] * meas.mpd_north[i]
         self.traj.pos.east[i] = self.traj.pos.lon[i] * meas.mpd_east[i]
+
 
 class IEKFParams:
     def __init__(self, kf):
@@ -435,3 +469,37 @@ class UKFParams:
         weights = np.full(2 * self.state_size + 1, 1 / (2 * (self.state_size + self.lambda_)))
         weights[0] = self.lambda_ / (self.state_size + self.lambda_) + (1 - self.alpha ** 2 + self.beta)
         return weights
+
+
+"""
+def _update_estimate_state(self, meas):
+    # Update estimated state
+    i = self.curr_state
+
+    # Update positions
+    self.traj.pos.lat[i] += self.params.dX[0, i] / meas.mpd_north[i]
+    self.traj.pos.lon[i] += self.params.dX[1, i] / meas.mpd_east[i]
+    self.traj.pos.h_asl[i] += self.params.dX[2, i]
+
+    # Update velocities
+    self.traj.vel.north[i] += self.params.dX[3, i]
+    self.traj.vel.east[i] += self.params.dX[4, i]
+    self.traj.vel.down[i] += self.params.dX[5, i]
+
+    # Update accelerations
+    # Assuming the accelerations are part of the state vector and are being estimated
+    self.traj.acc.north[i] += self.params.dX[6, i]
+    self.traj.acc.east[i] += self.params.dX[7, i]
+    self.traj.acc.down[i] += self.params.dX[8, i]
+
+    # Update Euler angles
+    self.traj.euler.psi[i] += self.params.dX[9, i]
+    self.traj.euler.theta[i] += self.params.dX[10, i]
+    self.traj.euler.phi[i] += self.params.dX[11, i]
+
+    # Additional updates if needed
+    self.traj.pos.h_map[i] = self.traj.pos.h_asl[i] - self.traj.pos.h_agl[i]  # Update height above map
+    self.traj.pos.north[i] = self.traj.pos.lat[i] * meas.mpd_north[i]  # Convert latitude to north position
+    self.traj.pos.east[i] = self.traj.pos.lon[i] * meas.mpd_east[i]  # Convert longitude to east position
+
+"""

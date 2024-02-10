@@ -22,33 +22,25 @@ class CreateTraj(BaseTraj):
         """
         creating euler angels vectors
 
-                          Z
-                          ^
-                          |
-                          |
-                          |     /|  Roll (φ)
-                          |    / |
-                          |   /  |
-                          |  /   |
-                          | /    |
-                          |/     |
-                          +------|---------> Y
-                         / \     |
-                        /   \    |
-                       /     \   | Pitch (θ)
-                      /       \  |
-                     /         \ |
-                    /           \|
-                    X                 v Yaw (ψ)
         :returns euler angels vectors in [deg]
         """
         self.euler.psi = self.inits['psi'] + self.inits['psi_dot'] * self.time_vec
         self.euler.theta = self.inits['theta'] + self.inits['theta_dot'] * self.time_vec
         self.euler.phi = self.inits['phi'] + self.inits['psi_dot'] * self.time_vec
 
+    def _create_acc(self):
+        """
+        Creates the acceleration vectors
+
+        """
+        self.acc.north = self.inits['acc_north'] * np.ones(self.run_points)
+        self.acc.east = self.inits['acc_east'] * np.ones(self.run_points)
+        self.acc.down = self.inits['acc_down'] * np.ones(self.run_points)
+
     def _create_vel(self):
         """
         creating velocity vectors
+
                 # North axis
                 ^
                 |       /
@@ -61,14 +53,14 @@ class CreateTraj(BaseTraj):
                     sin
         :returns velocity vectors in [m/s]
         """
+        self.vel.north = self.inits['avg_spd'] * cosd(self.inits['psi']) + self.acc.north * self.time_vec
+        self.vel.east = self.inits['avg_spd'] * sind(self.inits['psi']) + self.acc.east * self.time_vec
+        self.vel.down = self.inits['avg_spd'] * sind(self.inits['theta']) + self.acc.down * self.time_vec
 
-        self.vel.north = self.inits['avg_spd'] * cosd(self.inits['psi']) + self.inits['acc_north'] * self.time_vec
-        self.vel.east = self.inits['avg_spd'] * sind(self.inits['theta']) + self.inits['acc_east'] * self.time_vec
-        self.vel.down = self.inits['avg_spd'] * sind(self.inits['phi']) + self.inits['acc_down'] * self.time_vec
-
-    def _create_pos(self, map_data):
+    def _create_pos(self):
         """
         Update position vectors considering constant acceleration.
+
         """
         self.mpd_north, self.mpd_east = get_mpd(self.inits['lat'])
         init_north, init_east = self.inits['lat'] * self.mpd_north, self.inits['lon'] * self.mpd_east
@@ -89,13 +81,54 @@ class CreateTraj(BaseTraj):
     def _create_traj(self, map_data):
         """
         Interpolate map data at trajectory points to calculate corresponding heights.
-        Uses updated latitudes and longitudes from _create_pos_linear function.
 
         :param map_data: An instance containing the map grid data.
         """
         interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
         points = np.vstack((self.pos.lat, self.pos.lon)).T
         self.pos.h_map = interpolator(points)
+
+    def create(self, map_data):
+        self._create_euler()
+        self._create_acc()
+        self._create_vel()
+        self._create_pos()
+        self._create_traj(map_data)
+        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
+        self.pos.h_agl = self.pos.h_asl - self.pinpoint.h_map
+        return self
+
+    def plot_vel(self):
+        """
+        Plots the velocity components (North, East, Down) as functions of time in separate subplots.
+        """
+        fig, axs = plt.subplots(3, 1,
+                                figsize=(10, 15))  # Create a figure and a set of subplots with 3 rows and 1 column
+
+        # Plot North velocity component
+        axs[0].plot(self.time_vec, self.vel.north, 'b-')
+        axs[0].set_title('North Velocity')
+        axs[0].set_xlabel('Time [s]')
+        axs[0].set_ylabel('Velocity [m/s]')
+        axs[0].grid(True)
+
+        # Plot East velocity component
+        axs[1].plot(self.time_vec, self.vel.east, 'r-')
+        axs[1].set_title('East Velocity')
+        axs[1].set_xlabel('Time [s]')
+        axs[1].set_ylabel('Velocity [m/s]')
+        axs[1].grid(True)
+
+        # Plot Down velocity component
+        axs[2].plot(self.time_vec, self.vel.down, 'g-')
+        axs[2].set_title('Down Velocity')
+        axs[2].set_xlabel('Time [s]')
+        axs[2].set_ylabel('Velocity [m/s]')
+        axs[2].grid(True)
+
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+        plt.show()
 
     def plot_trajectory(self, map_data):
         """
@@ -163,12 +196,3 @@ class CreateTraj(BaseTraj):
         plt.savefig(f'{title}.png')
 
         plt.show()
-
-    def create(self, map_data):
-        self._create_euler()
-        self._create_vel()
-        self._create_pos(map_data)
-        self._create_traj(map_data)
-        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
-        self.pos.h_agl = self.pos.h_asl - self.pinpoint.h_map
-        return self

@@ -1,24 +1,47 @@
 import pytest
+from unittest.mock import patch, MagicMock
 from src.create_traj import CreateTraj
-from src.data_loaders import Map, set_settings
+
+# Mock external dependencies
 @pytest.fixture
-def setup_create_traj():
-    args = set_settings()
-    map_data = Map(args).load()
-    create_traj = CreateTraj(args)
-    return create_traj, map_data
+def mock_mpd():
+    with patch('src.utils.get_mpd', return_value=(1, 1)) as mock_func:
+        yield mock_func
 
-def test_euler_creation(setup_create_traj):
-    create_traj, _ = setup_create_traj
-    create_traj._create_euler()  #
-    assert create_traj.euler.psi[0] == create_traj.args.psi
-    # Add more assertions as needed
+@pytest.fixture
+def mock_map_data():
+    map_data = MagicMock()
+    map_data.ax_lat = [0, 1]  # Dummy values
+    map_data.ax_lon = [0, 1]  # Dummy values
+    map_data.grid = [[0, 1], [1, 2]]  # Dummy grid
+    return map_data
 
-def test_velocity_creation(setup_create_traj):
-    create_traj, _ = setup_create_traj
-    create_traj._create_vel()
-    # Assertions to verify velocities are correctly calculated
+# Example test: Ensure _create_pos correctly updates positions
+def test_create_pos_updates_positions_correctly(mock_mpd, mock_map_data):
+    # Setup
+    args = MagicMock()
+    args.init_lat = 0
+    args.init_lon = 0
+    args.init_height = 0
+    args.avg_spd = 1
+    args.acc_north = 0
+    args.acc_east = 0
+    args.acc_down = 0
+    args.psi = 0
+    args.theta = 0
+    args.phi = 0
+    args.psi_dot = 0
+    args.theta_dot = 0
+    args.phi_dot = 0
+    args.time_vec = [0, 1]
 
-def test_position_creation(setup_create_traj):
-    create_traj, map_data = setup_create_traj
-    create_traj._create_pos
+    traj = CreateTraj(args)
+
+    # Action
+    traj._create_pos(mock_map_data)
+
+    # Assert
+    assert traj.pos.north[0] == args.init_lat
+    assert traj.pos.east[0] == args.init_lon
+
+# Add more tests for other methods like _create_euler, _create_vel, _create_traj, etc.

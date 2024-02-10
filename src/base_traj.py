@@ -29,4 +29,6 @@ class BaseTraj:
         self.pinpoint = None
         self.pos = BasePos(length)
         self.vel = BaseVel(length)
+        self.acc = BaseVel(length)
         self.euler = BaseEuler(length)
+

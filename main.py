@@ -9,43 +9,27 @@ from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
 
-
 if __name__ == '__main__':
     time_start = time.time()
-    # Set run settings
-    args = set_settings()
-    # Load the map data using the provided settings
-    map_data = Map().load(args)
+    args = set_settings()  # Set the system settings
+    map_data = Map().load(args)  # Load the map data using the provided settings
+    args.psi_dot = 5
     # Create the actual trajectory based on the map data and settings
 
     args.psi = 45
     args.theta = 0
     args.phi = 0
-    args.acc_north = 0
-    args.acc_east = 0
+    args.acc_north = 1
+    args.acc_east = 1
     args.acc_down = 0
     args.psi_dot = 0
     args.theta_dot = 0
     args.phi_dot = 0
 
     true_traj = CreateTraj(args).create(map_data)
-    true_traj.plot_views(map_data)
-    true_traj.plot_trajectory(map_data)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # true_traj.plot_vel()
+    # true_traj.plot_views(map_data)
+    # true_traj.plot_trajectory(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
@@ -68,6 +52,7 @@ if __name__ == '__main__':
         'kalman gains': True,
         'map elevation': True,
     }
+
     used_traj = true_traj if true_traj is not None else meas_traj
     errors = Errors(used_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)
