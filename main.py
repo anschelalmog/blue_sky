@@ -18,8 +18,8 @@ if __name__ == '__main__':
     map_data = Map().load(args)
     # Create the actual trajectory based on the map data and settings
 
-    args.psi = 0
-    args.theta = 1
+    args.psi = 45
+    args.theta = 0
     args.phi = 0
     args.acc_north = 0
     args.acc_east = 0

@@ -13,8 +13,9 @@ class CreateTraj(BaseTraj):
         self.run_points = args.run_points
         self.time_vec = args.time_vec
         self.inits = {'lat': args.init_lat, 'lon': args.init_lon, 'height': args.init_height,
-                    'avg_spd': args.avg_spd, 'acc_north': args.acc_north, 'acc_east': args.acc_east, 'acc_down': args.acc_down,
-                    'psi_dot': args.psi_dot, 'theta_dot': args.theta_dot, 'phi_dot': args.phi_dot}
+                      'avg_spd': args.avg_spd, 'acc_north': args.acc_north, 'acc_east': args.acc_east,
+                      'acc_down': args.acc_down, 'psi': args.psi, 'theta': args.theta, 'phi': args.phi,
+                      'psi_dot': args.psi_dot, 'theta_dot': args.theta_dot, 'phi_dot': args.phi_dot}
         self.pinpoint = None
 
     def _create_euler(self):
@@ -39,10 +40,11 @@ class CreateTraj(BaseTraj):
                      /         \ |
                     /           \|
                     X                 v Yaw (ψ)
+        :returns euler angels vectors in [deg]
         """
-        self.euler.psi = self.inits['psi'] + self.psi_dot * self.time_vec  # [deg]
-        self.euler.theta = self.inits['theta'] + self.theta_dot * self.time_vec  # [deg]
-        self.euler.phi = self.inits.phi['phi'] + self.psi_dot * self.time_vec  # [deg]
+        self.euler.psi = self.inits['psi'] + self.inits['psi_dot'] * self.time_vec
+        self.euler.theta = self.inits['theta'] + self.inits['theta_dot'] * self.time_vec
+        self.euler.phi = self.inits['phi'] + self.inits['psi_dot'] * self.time_vec
 
     def _create_vel(self):
         """
@@ -57,45 +59,27 @@ class CreateTraj(BaseTraj):
                 |  /
                 +----------------> East axis
                     sin
+        :returns velocity vectors in [m/s]
         """
-        self.vel.north = self.avg_spd * cosd(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
-        self.vel.east = self.avg_spd * sind(self.init_psi) + self.acc_north * self.time_vec  # [m/s]
-        # self.vel.down = self.avg_spd * sind(self.init_phi) + self.acc_down * self.time_vec  # [m/s]
-        self.vel.down += self.acc_down * self.time_vec  # [m/s]
+
+        self.vel.north = self.inits['avg_spd'] * cosd(self.inits['psi']) + self.inits['acc_north'] * self.time_vec
+        self.vel.east = self.inits['avg_spd'] * sind(self.inits['theta']) + self.inits['acc_east'] * self.time_vec
+        self.vel.down = self.inits['avg_spd'] * sind(self.inits['phi']) + self.inits['acc_down'] * self.time_vec
 
     def _create_pos(self, map_data):
         """
         Update position vectors considering constant acceleration.
         """
-        # self.mpd_north, self.mpd_east = get_mpd(self.init_lat)
-        # init_north, init_east = self.init_lat / self.mpd_north, self.init_lon / self.mpd_east
-        # # X = X_0 + V_0 * t  + 0.5 * a * (t^2)
-        # self.pos.north = self.init_lat * self.mpd_north + self.vel.north[0] * self.time_vec + 0.5 * self.acc_north * self.time_vec ** 2
-        # self.pos.east = self.init_lon * self.mpd_east + self.vel.east[0] * self.time_vec + 0.5 * self.acc_east * self.time_vec ** 2
-        # self.pos.h_asl = self.init_height + self.vel.down[0] - 0.5 * self.acc_down * self.time_vec ** 2
-        #
-        # # Instead of using a single initial velocity value, use the entire velocity vector
-        # self.pos.north = self.init_lat * self.mpd_north + np.cumsum(self.vel.north[:-1] + self.vel.north[1:]) / 2 * np.diff(self.time_vec)
-        # self.pos.east = self.init_lon * self.mpd_east + np.cumsum(self.vel.east[:-1] + self.vel.east[1:]) / 2 * np.diff(self.time_vec)
+        self.mpd_north, self.mpd_east = get_mpd(self.inits['lat'])
+        init_north, init_east = self.inits['lat'] * self.mpd_north, self.inits['lon'] * self.mpd_east
 
-        # For downward velocity, considering it starts from a constant value and changes due to acceleration
-        self.pos.h_asl = self.init_height + np.cumsum(self.vel.down[:-1] + self.vel.down[1:]) / 2 * np.diff(self.time_vec)
+        # X = X_0 + V_0 * t  + 0.5 * a * (t^2)
+        self.pos.north = (init_north + self.vel.north[0] * self.time_vec +
+                          0.5 * self.inits['acc_north'] * self.time_vec ** 2)
+        self.pos.east = (init_east + self.vel.east[0] * self.time_vec +
+                         0.5 * self.inits['acc_east'] * self.time_vec ** 2)
 
-        # Integrate velocity to get displacement, assuming linear motion
-        # Displacement = velocity * time for each component
-        displacement_north = np.cumsum(self.vel_north[:-1] * np.diff(self.time_vec))
-        displacement_east = np.cumsum(self.vel_east[:-1] * np.diff(self.time_vec))
-        displacement_down = np.cumsum(self.vel_down[:-1] * np.diff(self.time_vec))
-
-        # Initial displacement is zero
-        displacement_north = np.insert(displacement_north, 0, 0)
-        displacement_east = np.insert(displacement_east, 0, 0)
-        displacement_down = np.insert(displacement_down, 0, 0)
-
-        # Update position by adding displacement to initial position
-        self.pos_north = init_north + displacement_north
-        self.pos_east = init_east + displacement_east
-        self.pos_h_asl = self.init_height - displacement_down
+        self.pos.h_asl = self.inits['height'] + self.vel.down[0] - 0.5 * self.inits['acc_down'] * self.time_vec ** 2
 
         self.pos.lat = self.pos.north / self.mpd_north
         self.pos.lon = self.pos.east / self.mpd_east

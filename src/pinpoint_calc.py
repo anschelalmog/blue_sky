@@ -34,12 +34,13 @@ class PinPoint:
         self.lat = np.zeros(traj.run_points)
         self.lon = np.zeros(traj.run_points)
         self.h_map = np.zeros(traj.run_points)
+
         latV, lonV = traj.pos.lat, traj.pos.lon
         psiV, thetaV, phiV = traj.euler.psi, traj.euler.theta, traj.euler.phi
 
         bar_desc = "pinpoint calculation"
         for i, lat in enumerate(tqdm(traj.pos.lat, desc=bar_desc)):
-            dR = np.arange(0, traj.init_height + 1000)  # [m]
+            dR = np.arange(0, traj.inits['height'] + 1000)  # [m]
             lat, lon = latV[i], lonV[i]  # [deg]
             psi, theta, phi = psiV[i], thetaV[i], phiV[i]
 
