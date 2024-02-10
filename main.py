@@ -9,7 +9,6 @@ from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
 
-
 if __name__ == '__main__':
     time_start = time.time()
     # Set run settings
@@ -21,32 +20,18 @@ if __name__ == '__main__':
     args.psi = 45
     args.theta = 0
     args.phi = 0
-    args.acc_north = 0
-    args.acc_east = 0
+    args.acc_north = 1
+    args.acc_east = 1
     args.acc_down = 0
     args.psi_dot = 0
     args.theta_dot = 0
     args.phi_dot = 0
 
     true_traj = CreateTraj(args).create(map_data)
-    true_traj.plot_views(map_data)
-    true_traj.plot_trajectory(map_data)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    # true_traj.plot_vel()
+    # true_traj.plot_views(map_data)
+    # true_traj.plot_trajectory(map_data)
+    args.imu_errors
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
 

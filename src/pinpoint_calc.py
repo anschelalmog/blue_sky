@@ -23,8 +23,9 @@ class PinPoint:
 
     def calc(self, traj, map_data):
         """
-        Calculating the true range from the vehicle to the pinpoint, and true
-        pinpoint coordinates, for each point on the trajectory repeat required iterations
+        Calculating the true range from the vehicle to the pinpoint
+
+        and true pinpoint coordinates, for each point on the trajectory repeat required iterations
         :param map_data: map class instance, containing the map grid
         :param traj: true_traj class instance, containing the trajectory
         """
@@ -40,7 +41,7 @@ class PinPoint:
 
         bar_desc = "pinpoint calculation"
         for i, lat in enumerate(tqdm(traj.pos.lat, desc=bar_desc)):
-            dR = np.arange(0, traj.inits['height'] + 1000)  # [m]
+            dR = np.arange(0, traj.inits['height'])  # [m]
             lat, lon = latV[i], lonV[i]  # [deg]
             psi, theta, phi = psiV[i], thetaV[i], phiV[i]
 
@@ -55,12 +56,12 @@ class PinPoint:
             dH_star = traj.pos.h_asl[i] - traj_heights  # above alleged ground
             dH_tag = dR * cosd(theta) * cosd(phi)
             interpolated_height = interp1d(dH_star - dH_tag, dR)
+
             try:
                 self.range[i] = interpolated_height(0).item()  # Range to pinpoint
             except ValueError:
-                print('\n')
-                ic(i)
-                breakpoint()
+                assert True, "Could not interpolate"
+
             self.delta_north[i] = interpolated_height(0) * jac_north(psi, theta, phi) / traj.mpd_north[i]
             self.delta_east[i] = interpolated_height(0) * jac_east(psi, theta, phi) / traj.mpd_east[i]
 
@@ -72,7 +73,5 @@ class PinPoint:
             try:
                 self.h_map[i] = interpolator((self.lat[i], self.lon[i])).item()
             except ValueError:
-                print('\n')
-                ic(i)
-                breakpoint()
+                assert True, "Could not interpolate"
         return self

@@ -221,6 +221,7 @@ class Map:
                 y_idx = slice((e - min_lon_int) * tile_length, (e - min_lon_int + 1) * tile_length + 1)
 
                 map_full_tiles[x_idx, y_idx] = tile_load
+                # assert np.all(map_full_tiles, None)
 
         self._validate_map(map_full_tiles)
 
@@ -237,6 +238,11 @@ class Map:
             self.grid = generate_map(map_full_tiles)
         else:
             self.grid = map_full_tiles
+
+    # todo: complete function: when theres map starve this function can
+    #       add map the self.grid
+    def add_map(self):
+        pass
 
 
 class TrajFromFile(BaseTraj):
