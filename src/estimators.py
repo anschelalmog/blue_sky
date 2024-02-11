@@ -24,51 +24,51 @@ class IEKF:
         self.del_t = args.time_res
         self.state_size = args.kf_state_size
         self.curr_state = None
-        self.max_iter = None
-        self.conv_rate = None
+        self.max_iter = 1  # if args.max_iter is None else args.max_iter
+        self.conv_rate = 0  # if args.conv_rate is None else args.conv_rate
         self.traj = BaseTraj(self.run_points)
         self.traj.pinpoint = PinPoint(self.run_points)
         self.params = IEKFParams(self)
 
     def run(self, map_data, meas):
         """
-             This method implements the main loop for the Iterative Extended Kalman Filter (IEKF).
-             IEKF is used here for estimating the trajectory of a vehicle using sensor measurements and map data.
+        This method implements the main loop for the Iterative Extended Kalman Filter (IEKF).
+        IEKF is used here for estimating the trajectory of a vehicle using sensor measurements and map data.
 
-             KF Algorithm:
-             1. Initialization: the state estimates and covariance matrices.
-             2. Prediction Step:
-                - State Prediction:
-                  Formula (2.1): x_hat_k|k-1 = F * x_hat_k-1|k-1 + B * u_k
-                  x_hat - state estimate, F - transition model, B is the control-input model,
-                  and u is the control vector.
-                - Covariance Prediction:
-                  Formula (2.2): P_k|k-1 = F_k * P_k-1|k-1 * F_k^T + Q_k
-                  Where P is the covariance matrix of the state estimate, and Q is the process noise covariance.
+        KF Algorithm:
+        1. Initialization: the state estimates and covariance matrices.
+        2. Prediction Step:
+           - State Prediction:
+             Formula (2.1): x_hat_k|k-1 = F * x_hat_k-1|k-1 + B * u_k
+             x_hat - state estimate, F - transition model, B is the control-input model,
+             and u is the control vector.
+           - Covariance Prediction:
+             Formula (2.2): P_k|k-1 = F_k * P_k-1|k-1 * F_k^T + Q_k
+             Where P is the covariance matrix of the state estimate, and Q is the process noise covariance.
 
-             3. Update Step:
-                - Measurement Update: Calculate the Kalman Gain and update the estimate with the measurement.
-                  Formula (3.1): K_k = P_k|k-1 * H_k^T / (H_k * P_k|k-1 * H_k^T + R_k)
-                  Where K is the Kalman Gain, H is the observation model, and R is the measurement noise covariance.
-                - State Update:
-                  Formula (3.2): x_hat_k|k = x_hat_k|k-1 + K_k * (z_k - h(x_hat_k|k-1))
-                  Where z is the actual measurement, and h is the measurement function.
-                - Covariance Update:
-                  Formula (3.3): P_k|k = (I - K_k * H_k) * P_k|k-1
-                  Where I is the identity matrix.
+        3. Update Step:
+            - Measurement Update: Calculate the Kalman Gain and update the estimate with the measurement.
+              Formula (3.1): K_k = P_k|k-1 * H_k^T / (H_k * P_k|k-1 * H_k^T + R_k)
+              Where K is the Kalman Gain, H is the observation model, and R is the measurement noise covariance.
+            - State Update:
+              Formula (3.2): x_hat_k|k = x_hat_k|k-1 + K_k * (z_k - h(x_hat_k|k-1))
+              Where z is the actual measurement, and h is the measurement function.
+            - Covariance Update:
+              Formula (3.3): P_k|k = (I - K_k * H_k) * P_k|k-1
+              Where I is the identity matrix.
 
-             This method iterates over the measurement points, applying these steps to estimate the vehicle's
-             trajectory.
+        This method iterates over the measurement points, applying these steps to estimate the vehicle's
+        trajectory.
 
-             Parameters:
-             - map_data: Contains the map information necessary for navigation.
-             - meas: Sensor measurements used for estimating the trajectory.
+        Parameters:
+        - map_data: Contains the map information necessary for navigation.
+        - meas: Sensor measurements used for estimating the trajectory.
 
-             Returns:
-             - self: An instance of the IEKF class with updated trajectory estimates.
-             """
+        Returns:
+        - self: An instance of the IEKF class with updated trajectory estimates.
+        """
+
         self._initialize_traj(meas)
-
         self._initialize_params()
 
         desc = "Estimating Trajectory with IEKF"
@@ -79,27 +79,35 @@ class IEKF:
             self._predict_state(meas)
             p_pre = self._predict_covariance()
 
-            "-Measurement update"
-            lat, lon = self._pinpoint_coordinates(meas)
-            self._find_slopes(lat, lon, p_pre, map_data)  # updates SN, SE, Rfit
-            h_asl_meas = self.traj.pos.h_asl[i]  # meas.pos.h_asl[i]
-            jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
-            h_agl_meas = meas.pinpoint.range[i] * jac
-            h_map_meas = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(lon, lat)
-            self.traj.pos.h_agl[i] = h_agl_meas
+            # inner_loop = 'estimation iterations'
+            # for iter in tqdm(range(self.max_iter), desc = inner_loop):
+            for iter in range(self.max_iter):
+                "-Measurement update"
+                # H_x = self._compute_measurment
+                lat, lon = self._pinpoint_coordinates(meas)
+                self._find_slopes(lat, lon, p_pre, map_data)  # updates SN, SE, Rfit
+                h_asl_meas = self.traj.pos.h_asl[i]  # meas.pos.h_asl[i]
+                jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
+                h_agl_meas = meas.pinpoint.range[i] * jac
+                h_map_meas = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(lon, lat)
+                self.traj.pos.h_agl[i] = h_agl_meas
 
-            self.params.H[:3, i] = [-self.params.SN[i], -self.params.SE[i], -1]  # Update observation matrix
-            self._calc_rc(h_agl_meas)
-            self.params.R[i] = self.params.Rc[i] + self.params.Rfit[i]  # calc noise
+                self.params.H[:3, i] = [-self.params.SN[i], -self.params.SE[i], -1]  # Update observation matrix
+                self._calc_rc(h_agl_meas)
+                self.params.R[i] = self.params.Rc[i] + self.params.Rfit[i]  # calc noise
 
-            "-Estimation step"
-            self._compute_gain(p_pre)
-            # Measurement Model
-            self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
-            self._estimate_covariance(p_pre)
+                "-Estimation step"
+                self._compute_gain(p_pre)
+                # Measurement Model
+                # self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
+                self.params.Z[i] = self.traj.pos.h_asl - h_agl_meas - h_map_meas
+                self._estimate_covariance(p_pre)
 
-            self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]
-            self._update_estimate_state(meas)
+                self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]
+                self._update_estimate_state(meas)
+
+                if self.check_convergence():
+                    break
 
         return self
 
@@ -108,6 +116,7 @@ class IEKF:
         Set initial values from measurements
 
         """
+
         self.traj.pos.lat[0] = meas.pos.lat[0]
         self.traj.pos.lon[0] = meas.pos.lon[0]
         self.traj.pos.h_asl[0] = meas.pos.h_asl[0]  # altitude
@@ -128,35 +137,26 @@ class IEKF:
 
     def _initialize_params(self):
         self.params = IEKFParams(self)
-
         # initial error in pos(north, east, down) in[m],
         #                  vel(north, east, down) in [m/s],
         #                  acc(north, east, down) in [m/s^2],
         #                  euler(yaw, pitch,roll) in [deg]
         self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2, 1, 1, 1, 1, 1, 1]), 2)
-        #
         self.params.Q = np.power(np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 1e-7)
-        # Dynamic Equation: linear motion
+
+        # Dynamic Equation:
         # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
         self.params.Phi = np.eye(self.state_size)
-        self.params.Phi[0][3] = self.del_t
-        self.params.Phi[1][4] = self.del_t
-        self.params.Phi[2][5] = self.del_t
-
-        # Set the diagonal elements for the positions, velocities, and Euler angles to 1
-        self.params.Phi = np.eye(self.state_size)
-
-        # Update the matrix for positions influenced by velocities
         self.params.Phi[0, 3] = self.params.Phi[1, 4] = self.params.Phi[2, 5] = self.del_t
-
-        # Update the matrix for positions influenced by accelerations
         self.params.Phi[0, 6] = self.params.Phi[1, 7] = self.params.Phi[2, 8] = 0.5 * self.del_t ** 2
-
-        # Update the matrix for velocities influenced by accelerations
         self.params.Phi[3, 6] = self.params.Phi[4, 7] = self.params.Phi[5, 8] = self.del_t
-
-        # Update the matrix for linearly changing Euler angles
         self.params.Phi[9, 10] = self.params.Phi[10, 11] = self.del_t
+
+        # dPhi/ dt
+        self.params.Phi_dot[0, 3] = self.params.Phi_dot[1, 4] = self.params.Phi_dot[2, 5] = 1
+        self.params.Phi_dot[0, 6] = self.params.Phi_dot[1, 7] = self.params.Phi_dot[2, 8] = self.del_t
+        self.params.Phi_dot[3, 6] = self.params.Phi_dot[4, 7] = self.params.Phi_dot[5, 8] = 1
+        self.params.Phi_dot[9, 10] = self.params.Phi_dot[10, 11] = 1
 
     def _predict_state(self, meas):
         """
@@ -170,27 +170,27 @@ class IEKF:
         # Update positions based on velocity and acceleration
         self.traj.pos.lat[i] = (self.traj.pos.lat[i - 1] +
                                 (self.traj.vel.north[i - 1] * self.del_t +
-                                 0.5 * self.traj.acc.north[i - 1] * self.del_t**2) / meas.mpd_north[i])
+                                 0.5 * self.traj.acc.north[i - 1] * self.del_t ** 2) / meas.mpd_north[i])
         self.traj.pos.lon[i] = (self.traj.pos.lon[i - 1] +
                                 (self.traj.vel.east[i - 1] * self.del_t +
-                                 0.5 * self.traj.acc.east[i - 1] * self.del_t**2) / meas.mpd_east[i])
+                                 0.5 * self.traj.acc.east[i - 1] * self.del_t ** 2) / meas.mpd_east[i])
         self.traj.pos.h_asl[i] = (self.traj.pos.h_asl[i - 1] +
                                   (self.traj.vel.down[i - 1] * self.del_t +
-                                   0.5 * self.traj.acc.down[i - 1] * self.del_t**2))
+                                   0.5 * self.traj.acc.down[i - 1] * self.del_t ** 2))
 
         # Update velocities based on acceleration
-        self.traj.vel.north[i] = self.traj.vel.north[i - 1] + self.traj.acc.north[i - 1] * self.del_t
-        self.traj.vel.east[i] = self.traj.vel.east[i - 1] + self.traj.acc.east[i - 1] * self.del_t
-        self.traj.vel.down[i] = self.traj.vel.down[i - 1] + self.traj.acc.down[i - 1] * self.del_t
-    
+        # self.traj.vel.north[i] = self.traj.vel.north[i - 1] + self.traj.acc.north[i - 1] * self.del_t
+        self.traj.vel.north[i] = self.traj.vel.north[i - 1] + meas.acc.north[i - 1] * self.del_t
+        # self.traj.vel.east[i] = self.traj.vel.east[i - 1] + self.traj.acc.east[i - 1] * self.del_t
+        self.traj.vel.east[i] = self.traj.vel.east[i - 1] + meas.acc.east[i - 1] * self.del_t
+        # self.traj.vel.down[i] = self.traj.vel.down[i - 1] + self.traj.acc.down[i - 1] * self.del_t
+        self.traj.vel.down[i] = self.traj.vel.down[i - 1] + meas.acc.down[i - 1] * self.del_t
+
         # Assuming linear change in Euler angles
-        # Update based on change rates if available or assume constant rate
         self.traj.euler.psi[i] = self.traj.euler.psi[i - 1] + ((meas.euler.psi[i] - meas.euler.psi[i - 1]) * self.del_t)
-        self.traj.euler.theta[i] = self.traj.euler.theta[i - 1] + ((meas.euler.theta[i] - meas.euler.theta[i - 1]) * self.del_t)
+        self.traj.euler.theta[i] = self.traj.euler.theta[i - 1] + (
+                    (meas.euler.theta[i] - meas.euler.theta[i - 1]) * self.del_t)
         self.traj.euler.phi[i] = self.traj.euler.phi[i - 1] + ((meas.euler.phi[i] - meas.euler.phi[i - 1]) * self.del_t)
-
-
-
 
         self.traj.vel.north[i] = self.traj.vel.north[i - 1] + meas.vel.north[i] - meas.vel.north[i - 1]
         self.traj.vel.east[i] = self.traj.vel.east[i - 1] + meas.vel.east[i] - meas.vel.east[i - 1]
@@ -244,7 +244,7 @@ class IEKF:
         """
         i = self.curr_state
         dP = 100  # distance increments in [m]
-        delPmap = np.array( [dP / map_data.mpd['north'][i], dP / map_data.mpd['east'][i]])  # [deg]
+        delPmap = np.array([dP / map_data.mpd['north'][i], dP / map_data.mpd['east'][i]])  # [deg]
 
         # max number of points in each direction
         maxP = np.sqrt(max(p_pre[0][0], p_pre[1][1]))
@@ -316,9 +316,34 @@ class IEKF:
         self.traj.vel.north[i] -= self.params.dX[3, i]
         self.traj.vel.east[i] -= self.params.dX[4, i]
         self.traj.vel.down[i] -= self.params.dX[5, i]
+        self.traj.acc.north[i] -= self.params.dX[6, i]
+        self.traj.acc.east[i] -= self.params.dX[7, i]
+        self.traj.acc.down[i] -= self.params.dX[8, i]
+        self.traj.euler.psi[i] -= self.params.dX[9, i]
+        self.traj.euler.theta[i] -= self.params.dX[10, i]
+        self.traj.euler.phi[i] -= self.params.dX[11, i]
         self.traj.pos.h_map[i] = self.traj.pos.h_asl[i] - self.traj.pos.h_agl[i]
         self.traj.pos.north[i] = self.traj.pos.lat[i] * meas.mpd_north[i]
         self.traj.pos.east[i] = self.traj.pos.lon[i] * meas.mpd_east[i]
+
+    def check_convergence(self) -> bool:
+        """
+           Check if the IEKF state estimate has converged using the Euclidean norm.
+
+           Parameters:
+           - prev_state: The state estimate from the previous iteration (numpy array).
+           - curr_state: The updated state estimate from the current iteration (numpy array).
+           - threshold: The convergence threshold; the iteration is considered converged
+                        if the Euclidean norm of the change in the state estimate is less than this threshold.
+
+           Returns:
+           - converged (bool): True if the state estimate has converged, False otherwise.
+           """
+        i = self.curr_state
+        loss = np.linalg.norm(self.params.dX[:, i] - self.params.dX[:, i-1])
+        return loss < self.conv_rate
+
+
 
 
 class IEKFParams:
@@ -326,6 +351,7 @@ class IEKFParams:
         self.P_est = np.zeros((kf.state_size, kf.state_size, kf.run_points))
         self.Q = np.zeros((kf.state_size, kf.state_size))  # system noise, constant
         self.Phi = np.zeros((kf.state_size, kf.state_size))
+        self.Phi_dot = np.zeros((kf.state_size, kf.state_size))
         self.H = np.zeros((kf.state_size, kf.run_points))  # observation vector
         self.Z = np.zeros(kf.run_points)  # measurement vector
         self.R = np.zeros(kf.run_points)

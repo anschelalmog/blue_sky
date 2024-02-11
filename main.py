@@ -13,14 +13,15 @@ if __name__ == '__main__':
     time_start = time.time()
     args = set_settings()  # Set the system settings
     map_data = Map().load(args)  # Load the map data using the provided settings
+
     args.psi_dot = 5
     # Create the actual trajectory based on the map data and settings
 
     args.psi = 0
     args.theta = 0
     args.phi = 0
-    args.acc_north = 1
-    args.acc_east = 1
+    args.acc_north = 0
+    args.acc_east = 0
     args.acc_down = 0
     args.psi_dot = 0
     args.theta_dot = 0

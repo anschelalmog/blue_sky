@@ -49,8 +49,8 @@ def set_settings():
 
     # Kalman Filter Settings
     parser.add_argument('--kf_type', type=str, default='IEKF', help='kalman filter type, format: IEKF or UKF')
-    # dX = [delP_North, delP_East, delH, delV_North, delV_East, delV_Down, acc_North, acc_East, acc_Down,
-    #                                                                           yaw, pitch, roll] , space state vector
+    # dX = [ΔPos_North, ΔPos_East, ΔH_asl, ΔVel_North, ΔVel_East, ΔVel_Down, ΔAcc_North, ΔAcc_East, ΔAcc_Down,
+    #                                                                           Δψ, Δθ, Δφ] space state vector
     parser.add_argument('--kf_state_size', type=int, default=12, help='number of state estimation')
 
     args = parser.parse_args()
@@ -123,7 +123,15 @@ class Map:
         none_attrs_str = ', '.join(none_attrs) if none_attrs else 'None'
         not_none_attrs_str = ', '.join(not_none_attrs) if not_none_attrs else 'None'
 
-        return f"Map class instance: the attributes {none_attrs_str} are None and the attributes {not_none_attrs_str} are not None."
+        msg1 = "Map class instance: "
+        if none_attrs_str is None:
+            msg2 = 'all attributes are set'
+        elif not_none_attrs_str is None:
+            msg2 = 'no attributes set'
+        else:
+            msg2 = f"the attributes {none_attrs_str} are None and the attributes {not_none_attrs_str} are not None."
+
+        return msg1 + msg2
 
     def load(self, args):
         tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
@@ -164,10 +172,10 @@ class Map:
         mpd_N, mpd_E = get_mpd(args.init_lat)
         # X = X_0 + V_0 * t + 1/2 V*t^2
         pos_final_lat = (args.init_lat + (((args.avg_spd * sind(args.psi)) * args.time_end) +
-                        (0.5 * args.acc_north * args.time_end ** 2)) / mpd_N)
+                                          (0.5 * args.acc_north * args.time_end ** 2)) / mpd_N)
 
         pos_final_lon = (args.init_lon + (((args.avg_spd * cosd(args.psi)) * args.time_end) +
-                        (0.5 * args.acc_east * args.time_end ** 2)) / mpd_E)
+                                          (0.5 * args.acc_east * args.time_end ** 2)) / mpd_E)
 
         init_lat = np.floor(np.min([args.init_lat, pos_final_lat]))
         init_lat = init_lat.astype(int)
@@ -183,8 +191,7 @@ class Map:
         self.bounds['lon'] = [init_lon, final_lon]
         # self.final_pos = [pos_final_lat, pos_final_lon]
 
-
-    def _create_grid(self,lat=None, lon=None):
+    def _create_grid(self, lat=None, lon=None):
 
         # Create an empty map grid
         if lat is not None and lon is not None:
@@ -194,7 +201,6 @@ class Map:
         else:
             min_lat, max_lat = min(self.bounds['lat']), max(self.bounds['lat'])
             min_lon, max_lon = min(self.bounds['lon']), max(self.bounds['lon'])
-
 
         map_full_tiles = np.zeros(
             [abs(max_lat - min_lat) * self.meta['tile_length'] + 1,
@@ -234,24 +240,49 @@ class Map:
         else:
             self.grid = map_full_tiles
 
-    # todo:
-    def update_map(self, lat, lon):
-        # Load the new map tile into a separate Map instance
-        new_map = Map().load(self._construct_args(lat, lon))
+    def update_map(self, new_lat, new_lon):
+        new_args = set_settings()
+        new_args.init_lat = new_lat, new_args.init_lon = new_lon
+        new_map = Map().load(new_args)
 
-        # Determine the position of the new tile relative to the existing grid
-        position = self._determine_position(lat, lon)
+        directions = []
+        if new_lat > self.bounds['lat'][1]: directions.append('north')
+        if new_lat < self.bounds['lat'][0]: directions.append('south')
+        if new_lon < self.bounds['lon'][0]: directions.append('west')
+        if new_lon > self.bounds['lon'][1]: directions.append('east')
 
-        if position == 'north':
+        # Update map attributes for each necessary direction
+        for direction in directions:
+            self._update_map_attributes(new_map, direction)
+
+    def _update_map_attributes(self, new_map, axis):
+        if axis == 'north':
             self.grid = np.concatenate((self.grid, new_map.grid), axis=0)
-        elif position == 'south':
-            self.grid = np.concatenate((new_map.grid, self.grid), axis=0)
-        elif position == 'east':
-            self.grid = np.concatenate((self.grid, new_map.grid), axis=1)
-        elif position == 'west':
-            self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
+            self.axis['north'] = np.concatenate(self.bounds['north'], new_map.bounds['north'])
+            self.axis['lat'] = np.concatenate(self.bounds['lat'], new_map.bounds['lat'])
+            self.mpd['north'] = np.concatenate(self.mpd['north'], new_map.mpd['north'])
+            self.bounds['lat'][1] = np.ceil(max(self.axis['lat']))
 
-        self._update_map_attributes()
+        elif axis == 'south':
+            self.grid = np.concatenate((new_map.grid, self.grid), axis=0)
+            self.axis['north'] = np.concatenate(new_map.bounds['north'], self.bounds['north'])
+            self.axis['lat'] = np.concatenate(new_map.bounds['lat'], self.bounds['lat'])
+            self.mpd['north'] = np.concatenate(new_map.mpd['north'], self.mpd['north'])
+            self.bounds['lat'][0] = np.floor(min(self.axis['lat']))
+
+        elif axis == 'east':
+            self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
+            self.axis['east'] = np.concatenate(new_map.bounds['east'], self.bounds['east'])
+            self.axis['lon'] = np.concatenate(new_map.bounds['lon'], self.bounds['lon'])
+            self.mpd['east'] = np.concatenate(new_map.mpd['east'], self.mpd['east'])
+            self.bounds['lon'][1] = np.ceil(max(self.axis['lon']))
+
+        else:  # axis == 'west':
+            self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
+            self.axis['east'] = np.concatenate(new_map.bounds['east'], self.bounds['east'])
+            self.axis['lon'] = np.concatenate(self.bounds['lon'], new_map.bounds['lon'])
+            self.mpd['east'] = np.concatenate(self.mpd['east'], new_map.mpd['east'])
+            self.bounds['lon'][0] = np.floor(min(self.axis['lon']))
 
 
 class TrajFromFile(BaseTraj):

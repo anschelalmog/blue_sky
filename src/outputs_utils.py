@@ -28,6 +28,8 @@ class Errors(BaseTraj):
 class Covariances(BaseTraj):
     def __init__(self, covariances):
         super().__init__(covariances.shape[2])
+        #
+
         self.pos.north = np.sqrt(covariances[0, 0, :])
         self.pos.east = np.sqrt(covariances[1, 1, :])
         self.pos.h_asl = np.sqrt(covariances[2, 2, :])
@@ -36,9 +38,28 @@ class Covariances(BaseTraj):
         self.vel.east = np.sqrt(covariances[4, 4, :])
         self.vel.down = np.sqrt(covariances[5, 5, :])
         #
-        # self.euler.psi = P_est[6, 6, :]
-        # self.euler.theta = P_est[7, 7, :]
-        # self.euler.phi = P_est[8, 8, :]
+        self.acc.north = np.sqrt(covariances[6, 6, :])
+        self.acc.east = np.sqrt(covariances[7, 7, :])
+        self.acc.down = np.sqrt(covariances[8, 8, :])
+        #
+        self.euler.psi = np.sqrt(covariances[9, 9, :])
+        self.euler.theta = np.sqrt(covariances[10, 10, :])
+        self.euler.phi = np.sqrt(covariances[11, 11, :])
+
+
+   # Mapping of attribute names to their corresponding indices in the covariance matrix
+        attr_indices = {
+            'pos': {'north': 0, 'east': 1, 'h_asl': 2},
+            'vel': {'north': 3, 'east': 4, 'down': 5},
+            'acc': {'north': 6, 'east': 7, 'down': 8},
+            'euler': {'psi': 9, 'theta': 10, 'phi': 11}
+        }
+
+        # Iterate over the attribute groups and their items
+        for attr_group, indices in attr_indices.items():
+            for attr_name, idx in indices.items():
+                # Use sqrt to calculate the standard deviation from the variance
+                setattr(getattr(self, attr_group), attr_name, np.sqrt(covariances[idx, idx, :]))
 
 
 def plot_results(args, map_data, ground_truth, measurements, estimation_results, errors, covars):
@@ -189,7 +210,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].plot(args.time_vec, errors.euler.psi, '-r', linewidth=1)
         axs[0].plot(args.time_vec, covars.euler.psi, '--b', linewidth=1)
         axs[0].plot(args.time_vec, -covars.euler.psi, '--b', linewidth=1)
-        axs[0].set_title('Euler Psi Error [deg]')
+        axs[0].set_title(r'Euler $\psi$ - roll Error [deg]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
         axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
@@ -198,7 +219,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].plot(args.time_vec, errors.euler.theta, '-r', linewidth=1)
         axs[1].plot(args.time_vec, covars.euler.theta, '--b', linewidth=1)
         axs[1].plot(args.time_vec, -covars.euler.theta, '--b', linewidth=1)
-        axs[1].set_title('Euler Theta Error [deg]')
+        axs[1].set_title(r'Euler $\theta$ - pitch Error [deg]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
@@ -207,7 +228,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[2].plot(args.time_vec, errors.euler.phi, '-r', linewidth=1)
         axs[2].plot(args.time_vec, covars.euler.phi, '--b', linewidth=1)
         axs[2].plot(args.time_vec, -covars.euler.phi, '--b', linewidth=1)
-        axs[2].set_title('East Position Error [m]')
+        axs[2].set_title(r'Euler $\phi$ - roll Error [m]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
         axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
