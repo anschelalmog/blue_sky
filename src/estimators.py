@@ -85,7 +85,7 @@ class IEKF:
             h_asl_meas = self.traj.pos.h_asl[i]  # meas.pos.h_asl[i]
             jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
             h_agl_meas = meas.pinpoint.range[i] * jac
-            h_map_meas = interp2d(map_data.ax_lon, map_data.ax_lat, map_data.grid)(lon, lat)
+            h_map_meas = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(lon, lat)
             self.traj.pos.h_agl[i] = h_agl_meas
 
             self.params.H[:3, i] = [-self.params.SN[i], -self.params.SE[i], -1]  # Update observation matrix
@@ -185,9 +185,9 @@ class IEKF:
     
         # Assuming linear change in Euler angles
         # Update based on change rates if available or assume constant rate
-        self.traj.euler.psi[i] = self.traj.euler.psi[i - 1] + (meas.euler.dpsi[i - 1] * self.del_t)
-        self.traj.euler.theta[i] = self.traj.euler.theta[i - 1] + (meas.euler.dtheta[i - 1] * self.del_t)
-        self.traj.euler.phi[i] = self.traj.euler.phi[i - 1] + (meas.euler.dphi[i - 1] * self.del_t)
+        self.traj.euler.psi[i] = self.traj.euler.psi[i - 1] + ((meas.euler.psi[i] - meas.euler.psi[i - 1]) * self.del_t)
+        self.traj.euler.theta[i] = self.traj.euler.theta[i - 1] + ((meas.euler.theta[i] - meas.euler.theta[i - 1]) * self.del_t)
+        self.traj.euler.phi[i] = self.traj.euler.phi[i - 1] + ((meas.euler.phi[i] - meas.euler.phi[i - 1]) * self.del_t)
 
 
 
@@ -244,7 +244,7 @@ class IEKF:
         """
         i = self.curr_state
         dP = 100  # distance increments in [m]
-        delPmap = np.array([dP / map_data.mpd_north[i], dP / map_data.mpd_east[i]])  # [deg]
+        delPmap = np.array( [dP / map_data.mpd['north'][i], dP / map_data.mpd['east'][i]])  # [deg]
 
         # max number of points in each direction
         maxP = np.sqrt(max(p_pre[0][0], p_pre[1][1]))
@@ -262,7 +262,7 @@ class IEKF:
         sy2 = sx2
 
         # interpolate elevation data for current location
-        interpolator = interp2d(map_data.ax_lon, map_data.ax_lat, map_data.grid)
+        interpolator = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)
         ref_elevation = interpolator(lon, lat)[0]
         grid_elevations = interpolator(xp, yp)
 

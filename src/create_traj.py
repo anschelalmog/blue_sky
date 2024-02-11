@@ -84,7 +84,7 @@ class CreateTraj(BaseTraj):
 
         :param map_data: An instance containing the map grid data.
         """
-        interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
+        interpolator = RegularGridInterpolator((map_data.axis['lat'], map_data.axis['lon']), map_data.grid)
         points = np.vstack((self.pos.lat, self.pos.lon)).T
         self.pos.h_map = interpolator(points)
 

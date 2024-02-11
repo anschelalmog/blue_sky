@@ -16,7 +16,7 @@ if __name__ == '__main__':
     args.psi_dot = 5
     # Create the actual trajectory based on the map data and settings
 
-    args.psi = 45
+    args.psi = 0
     args.theta = 0
     args.phi = 0
     args.acc_north = 1
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         'plot map': True,
         'position errors': True,
         'velocity errors': True,
-        'attitude errors': False,
+        'attitude errors': True,
         'altitude errors': True,
         'model errors': True,
         'kalman gains': True,

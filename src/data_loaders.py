@@ -103,16 +103,27 @@ def set_settings():
 class Map:
     def __init__(self):
         self.meta = None
-        self.lat_bounds = None
-        self.lon_bounds = None
-        self.final_pos = None
-        self.ax_lat = None
-        self.ax_lon = None
-        self.ax_north = None
-        self.ax_east = None
-        self.mpd_north = None
-        self.mpd_east = None
+        self.axis = None
+        self.bounds = None
+        self.mpd = None
         self.grid = None
+
+    def __str__(self):
+        none_attrs = []
+        not_none_attrs = []
+
+        # Iterate over all attributes of the instance
+        for attr, value in self.__dict__.items():
+            if value is None:
+                none_attrs.append(attr)
+            else:
+                not_none_attrs.append(attr)
+
+        # Construct the string to be returned
+        none_attrs_str = ', '.join(none_attrs) if none_attrs else 'None'
+        not_none_attrs_str = ', '.join(not_none_attrs) if not_none_attrs else 'None'
+
+        return f"Map class instance: the attributes {none_attrs_str} are None and the attributes {not_none_attrs_str} are not None."
 
     def load(self, args):
         tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
@@ -120,62 +131,77 @@ class Map:
             'maps_dir': args.maps_dir,
             'map_res': args.map_res,
             'map_level': map_level,
+            'rate': args.map_res / 3600,
             'tile_length': tile_length,
             'ext': ext
         }
         self._set_map_boundaries(args)
-        self._set_axis(args)
-        self._create_grid(args)
+        self._set_axis()
+        self._create_grid()
         return self
+
+    def _set_axis(self):
+        """
+        Sets the axis values for latitude and longitude based on the given bounds and metadata.
+
+        :return: None
+        """
+        self.axis = {}
+
+        map_lat = np.arange(self.bounds['lat'][0], self.bounds['lat'][1], self.meta['rate'])
+        self.axis['lat'] = np.append(map_lat, map_lat[-1] + self.meta['rate'])
+
+        map_lon = np.arange(self.bounds['lon'][0], self.bounds['lon'][1], self.meta['rate'])
+        self.axis['lon'] = np.append(map_lon, map_lon[-1] + self.meta['rate'])
+
+        self.mpd = {}
+        self.mpd['north'], self.mpd['east'] = get_mpd(self.axis['lat'])
+
+        self.axis['north'] = self.axis['lat'] * self.mpd['north']
+        self.axis['east'] = self.axis['lon'] * self.mpd['east']
 
     def _set_map_boundaries(self, args):
         mpd_N, mpd_E = get_mpd(args.init_lat)
         # X = X_0 + V_0 * t + 1/2 V*t^2
-        pos_final_lat = args.init_lat + ((args.avg_spd * sind(args.psi)) / mpd_N * args.time_end)
-        pos_final_lon = args.init_lon + ((args.avg_spd * cosd(args.psi)) / mpd_E * args.time_end)
+        pos_final_lat = (args.init_lat + (((args.avg_spd * sind(args.psi)) * args.time_end) +
+                        (0.5 * args.acc_north * args.time_end ** 2)) / mpd_N)
 
-        init_lat = np.floor(np.min([args.init_lat, pos_final_lat])).astype(int)
-        final_lat = np.ceil(np.max([args.init_lat, pos_final_lat])).astype(int)
-        init_lon = np.floor(np.min([args.init_lon, pos_final_lon])).astype(int)
-        final_lon = np.ceil(np.max([args.init_lon, pos_final_lon])).astype(int)
+        pos_final_lon = (args.init_lon + (((args.avg_spd * cosd(args.psi)) * args.time_end) +
+                        (0.5 * args.acc_east * args.time_end ** 2)) / mpd_E)
 
-        self.lat_bounds = [init_lat, final_lat]
-        self.lon_bounds = [init_lon, final_lon]
+        init_lat = np.floor(np.min([args.init_lat, pos_final_lat]))
+        init_lat = init_lat.astype(int)
+        final_lat = np.ceil(np.max([args.init_lat, pos_final_lat]))
+        final_lat = final_lat.astype(int)
+        init_lon = np.floor(np.min([args.init_lon, pos_final_lon]))
+        init_lon = init_lon.astype(int)
+        final_lon = np.ceil(np.max([args.init_lon, pos_final_lon]))
+        final_lon = final_lon.astype(int)
+
+        self.bounds = {}
+        self.bounds['lat'] = [init_lat, final_lat]
+        self.bounds['lon'] = [init_lon, final_lon]
         # self.final_pos = [pos_final_lat, pos_final_lon]
 
 
-    def _set_axis(self, args):
-        rate = args.map_res / 3600
-        init_lat, final_lat = self.lat_bounds[0], self.lat_bounds[1]
-        init_lon, final_lon = self.lon_bounds[0], self.lon_bounds[1]
-
-        map_lat = np.arange(init_lat, final_lat, rate)
-        self.ax_lat = np.append(map_lat, map_lat[-1] + rate)
-        map_lon = np.arange(init_lon, final_lon, rate)
-        self.ax_lon = np.append(map_lon, map_lon[-1] + rate)
-
-        self.mpd_north, self.mpd_east = get_mpd(self.ax_lat)
-
-        self.ax_north = self.ax_lat * self.mpd_north
-        self.ax_east = self.ax_lon * self.mpd_east
-
-    def _create_grid(self, args):
-        # Initialize bounds and tile settings
-
-        min_lat_int, max_lat_int = map(int, (np.floor(self.lat_bounds[0]), np.ceil(self.lat_bounds[1])))
-        min_lon_int, max_lon_int = map(int, (np.floor(self.lon_bounds[0]), np.ceil(self.lon_bounds[1])))
-        ext = 'mat'
+    def _create_grid(self,lat=None, lon=None):
 
         # Create an empty map grid
+        if lat is not None and lon is not None:
+            min_lat, max_lat = np.floor(lat), np.ceil(lat)
+            min_lon, max_lon = np.floor(lon), np.ceil(lon)
+
+        else:
+            min_lat, max_lat = min(self.bounds['lat']), max(self.bounds['lat'])
+            min_lon, max_lon = min(self.bounds['lon']), max(self.bounds['lon'])
+
 
         map_full_tiles = np.zeros(
-            [(max_lat_int - min_lat_int) * self.meta['tile_length'] + 1,
-             (max_lon_int - min_lon_int) * self.meta['tile_length'] + 1])
+            [abs(max_lat - min_lat) * self.meta['tile_length'] + 1,
+             abs(max_lon - min_lon) * self.meta['tile_length'] + 1])
 
         # Load map tiles and assemble the full map
-        lat_range, lon_range = range(min_lat_int, max_lat_int), range(min_lon_int, max_lon_int)
-
-        self._load_map(lat_range, lon_range)
+        lat_range, lon_range = range(min_lat, max_lat), range(min_lon, max_lon)
 
         for e in lon_range:
             for n in lat_range:
@@ -185,13 +211,12 @@ class Map:
                 tile_load = self._load_tile(tile_path, self.meta['tile_length'])
 
                 # Define indices for placing the tile in the full map
-                x_idx = slice((n - min_lat_int) * self.meta['tile_length'], (n - min_lat_int + 1) *
+                x_idx = slice((n - min_lat) * self.meta['tile_length'], (n - min_lat + 1) *
                               self.meta['tile_length'] + 1)
-                y_idx = slice((e - min_lon_int) * self.meta['tile_length'], (e - min_lon_int + 1) *
+                y_idx = slice((e - min_lon) * self.meta['tile_length'], (e - min_lon + 1) *
                               self.meta['tile_length'] + 1)
 
                 map_full_tiles[x_idx, y_idx] = tile_load
-                # assert np.all(map_full_tiles, None)
 
         self._validate_map(map_full_tiles)
 
@@ -227,9 +252,6 @@ class Map:
             self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
 
         self._update_map_attributes()
-
-    def _load_map(self, lat_range, lon_range):
-        pass
 
 
 class TrajFromFile(BaseTraj):

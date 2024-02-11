@@ -20,9 +20,9 @@ class Errors(BaseTraj):
         self.vel.east = used_traj.vel.east - est_traj.vel.east
         self.vel.down = used_traj.vel.down - est_traj.vel.down
         #
-        # self.euler.psi = used_traj.euler.psi - est_traj.euler.psi
-        # self.euler.theta = used_traj.euler.theta - est_traj.euler.theta
-        # self.euler.phi = used_traj.euler.phi - est_traj.euler.phi
+        self.euler.psi = used_traj.euler.psi - est_traj.euler.psi
+        self.euler.theta = used_traj.euler.theta - est_traj.euler.theta
+        self.euler.phi = used_traj.euler.phi - est_traj.euler.phi
 
 
 class Covariances(BaseTraj):
@@ -50,7 +50,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         fig = plt.figure(title, figsize=(10, 12))
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title('MAP', fontsize=24, fontweight='bold')
-        X, Y = np.meshgrid(map_data.ax_lon, map_data.ax_lat)
+        X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
         ax.plot_surface(X, Y, map_data.grid, cmap='bone')
         plt.grid(False)
         ax.set_xlabel('Longitude [deg]')

@@ -47,11 +47,11 @@ class PinPoint:
 
             dcm = DCM(yaw=traj.euler.psi[i], pitch=traj.euler.theta[i], roll=traj.euler.phi[i])
             dNp, dEp = dR * dcm.rot_north(), dR * dcm.rot_east()  # [m]
-            dLat, dLon = dNp / map_data.mpd_north[i], dEp / map_data.mpd_east[i]  # [deg]
+            dLat, dLon = dNp / map_data.mpd['north'][i], dEp / map_data.mpd['east'][i]  # [deg]
             lat_tag, lon_tag = latV[i] + dLat, lonV[i] + dLon
 
             # height map data for the alleged pinpoint ( for each lat, lon along dR)
-            interpolator = RegularGridInterpolator((map_data.ax_lat, map_data.ax_lon), map_data.grid)
+            interpolator = RegularGridInterpolator((map_data.axis['lat'], map_data.axis['lon']), map_data.grid)
             traj_heights = interpolator(np.vstack((lat_tag, lon_tag)).T)
             dH_star = traj.pos.h_asl[i] - traj_heights  # above alleged ground
             dH_tag = dR * cosd(theta) * cosd(phi)
