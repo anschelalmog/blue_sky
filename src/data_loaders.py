@@ -132,16 +132,17 @@ class Map:
         mpd_N, mpd_E = get_mpd(args.init_lat)
         # X = X_0 + V_0 * t + 1/2 V*t^2
         pos_final_lat = args.init_lat + ((args.avg_spd * sind(args.psi)) / mpd_N * args.time_end)
-        pos_final_lon = args.init_lon + ((args.avg_spd * cosd(args.psi))/ mpd_E * args.time_end)
+        pos_final_lon = args.init_lon + ((args.avg_spd * cosd(args.psi)) / mpd_E * args.time_end)
 
-        init_lat = np.floor(np.min([args.init_lat, pos_final_lat]))
-        final_lat = np.ceil(np.max([args.init_lat, pos_final_lat]))
-        init_lon = np.floor(np.min([args.init_lon, pos_final_lon]))
-        final_lon = np.ceil(np.max([args.init_lon, pos_final_lon]))
+        init_lat = np.floor(np.min([args.init_lat, pos_final_lat])).astype(int)
+        final_lat = np.ceil(np.max([args.init_lat, pos_final_lat])).astype(int)
+        init_lon = np.floor(np.min([args.init_lon, pos_final_lon])).astype(int)
+        final_lon = np.ceil(np.max([args.init_lon, pos_final_lon])).astype(int)
 
         self.lat_bounds = [init_lat, final_lat]
         self.lon_bounds = [init_lon, final_lon]
-        self.final_pos = [pos_final_lat, pos_final_lon]
+        # self.final_pos = [pos_final_lat, pos_final_lon]
+
 
     def _set_axis(self, args):
         rate = args.map_res / 3600
