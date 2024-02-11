@@ -29,7 +29,6 @@ class Covariances(BaseTraj):
     def __init__(self, covariances):
         super().__init__(covariances.shape[2])
         #
-
         self.pos.north = np.sqrt(covariances[0, 0, :])
         self.pos.east = np.sqrt(covariances[1, 1, :])
         self.pos.h_asl = np.sqrt(covariances[2, 2, :])
