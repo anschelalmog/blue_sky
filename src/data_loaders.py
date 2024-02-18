@@ -154,8 +154,7 @@ class Map:
         map_lon = np.arange(self.bounds['lon'][0], self.bounds['lon'][1], self.meta['rate'])
         self.axis['lon'] = np.append(map_lon, map_lon[-1] + self.meta['rate'])
 
-        self.mpd = {}
-        self.mpd['north'], self.mpd['east'] = get_mpd(self.axis['lat'])
+        self.mpd = {'north': (get_mpd(self.axis['lat']))[0], 'east': (get_mpd(self.axis['lat']))[1]}
 
         self.axis['north'] = self.axis['lat'] * self.mpd['north']
         self.axis['east'] = self.axis['lon'] * self.mpd['east']
@@ -178,9 +177,7 @@ class Map:
         final_lon = np.ceil(np.max([args.init_lon, pos_final_lon]))
         final_lon = final_lon.astype(int)
 
-        self.bounds = {}
-        self.bounds['lat'] = [init_lat, final_lat]
-        self.bounds['lon'] = [init_lon, final_lon]
+        self.bounds = {'lat': [init_lat, final_lat], 'lon': [init_lon, final_lon]}
         # self.final_pos = [pos_final_lat, pos_final_lon]
 
     def _create_grid(self, lat=None, lon=None):
@@ -190,6 +187,7 @@ class Map:
             min_lat, max_lat = np.floor(lat), np.ceil(lat)
             min_lon, max_lon = np.floor(lon), np.ceil(lon)
 
+        # set boundaries
         else:
             min_lat, max_lat = min(self.bounds['lat']), max(self.bounds['lat'])
             min_lon, max_lon = min(self.bounds['lon']), max(self.bounds['lon'])
