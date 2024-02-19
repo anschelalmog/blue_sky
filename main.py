@@ -10,11 +10,9 @@ from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
 
 if __name__ == '__main__':
-    time_start = time.time()
     args = set_settings()  # Set the system settings
     map_data = Map().load(args)  # Load the map data using the provided settings
 
-    args.psi_dot = 5
     # Create the actual trajectory based on the map data and settings
 
     args.psi = 0

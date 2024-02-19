@@ -219,6 +219,7 @@ class Map:
     @staticmethod
     def _load_tile(tile_path, tile_length):
         try:
+            print(f'Loading tile: {tile_path}')
             return sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
         except FileNotFoundError:
             print(f'file not found: {tile_path}')
@@ -248,6 +249,26 @@ class Map:
             self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
 
         self._update_map_attributes()
+
+    def save(self, file_path):
+        """
+           Saves the current Map instance to a .mat file.
+
+           :param file_path: The path (including file name) where the .mat file will be saved.
+           """
+        data_to_save = {
+            'grid': self.grid,
+            'meta': self.meta,
+            'axis': self.axis,
+            'bounds': self.bounds,
+            'mpd': self.mpd
+        }
+
+        try:
+            sp.savemat(file_path, data_to_save)
+            print(f"Map saved successfully to {file_path}")
+        except Exception as e:
+            print(f"Failed to save the map: {e}")
 
 
 class TrajFromFile(BaseTraj):
