@@ -57,8 +57,8 @@ def set_settings():
 
     # Flight Settings
     if not args.traj_from_file:
-        parser.add_argument('--init_lat', type=float, default=31.5, help='initial Latitude, in [deg]')
-        parser.add_argument('--init_lon', type=float, default=23.5, help='initial Longitude, in [deg]')
+        parser.add_argument('--init_lat', type=float, default=37.5, help='initial Latitude, in [deg]')
+        parser.add_argument('--init_lon', type=float, default=21.5, help='initial Longitude, in [deg]')
         parser.add_argument('--init_height', type=float, default=5000, help='flight height at start, in [m]')
         #
         parser.add_argument('--avg_spd', type=float, default=250, help='flight average speed, [in m/sec]')
@@ -202,9 +202,9 @@ class Map:
         for e in lon_range:
             for n in lat_range:
                 tile_path = os.path.join(os.getcwd(), self.meta['maps_dir'],
-                                         f'Level{self.meta["map_level"]}', 'MAP00', 'DTED',
+                                         f'Level{self.meta["map_level"]}', 'DTED',
                                          f'E0{e}', f'n{n}.{self.meta["ext"]}')
-                tile_load = self._load_tile(tile_path, self.meta['tile_length'])
+                tile_load = self._load_tile(tile_path, self.meta['tile_length'], e, n)
 
                 # Define indices for placing the tile in the full map
                 x_idx = slice((n - min_lat) * self.meta['tile_length'], (n - min_lat + 1) *
@@ -217,10 +217,11 @@ class Map:
         self._validate_map(map_full_tiles)
 
     @staticmethod
-    def _load_tile(tile_path, tile_length):
+    def _load_tile(tile_path, tile_length, e, n):
         try:
-            print(f'Loading tile: {tile_path}')
-            return sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
+            print(f'Trying to load tile: {tile_path}')
+            ret = sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
+            print(f'Loaded tile: E0{e} n{n}')
         except FileNotFoundError:
             print(f'file not found: {tile_path}')
             return None

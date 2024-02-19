@@ -2,6 +2,7 @@ import sys
 import time
 from matplotlib import pyplot as plt
 import os
+
 #
 from src.data_loaders import Map, set_settings
 from src.create_traj import CreateTraj
