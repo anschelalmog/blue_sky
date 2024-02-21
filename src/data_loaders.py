@@ -109,21 +109,11 @@ class Map:
         self.grid = None
 
     def __str__(self):
-        none_attrs = []
-        not_none_attrs = []
-
-        # Iterate over all attributes of the instance
-        for attr, value in self.__dict__.items():
-            if value is None:
-                none_attrs.append(attr)
-            else:
-                not_none_attrs.append(attr)
-
-        # Construct the string to be returned
-        none_attrs_str = ', '.join(none_attrs) if none_attrs else 'None'
-        not_none_attrs_str = ', '.join(not_none_attrs) if not_none_attrs else 'None'
-
-        return f"Map class instance: the attributes {none_attrs_str} are None and the attributes {not_none_attrs_str} are not None."
+        if self.meta is None:
+            return 'Map Class instance: not initialized'
+        else:
+            map_level = self.meta['map_level']
+            return f'Map class instance: map level {map_level}, {self.bounds}'
 
     def load(self, args):
         tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
@@ -232,24 +222,49 @@ class Map:
         else:
             self.grid = map_full_tiles
 
-    # todo: complete the ability to receive more map during flight
-    def update_map(self, lat, lon):
-        # Load the new map tile into a separate Map instance
-        new_map = Map().load(self._construct_args(lat, lon))
+    def update_map(self, new_lat, new_lon):
+        new_args = set_settings()
+        new_args.init_lat = new_lat, new_args.init_lon = new_lon
+        new_map = Map().load(new_args)
 
-        # Determine the position of the new tile relative to the existing grid
-        position = self._determine_position(lat, lon)
+        directions = []
+        if new_lat > self.bounds['lat'][1]: directions.append('north')
+        if new_lat < self.bounds['lat'][0]: directions.append('south')
+        if new_lon < self.bounds['lon'][0]: directions.append('west')
+        if new_lon > self.bounds['lon'][1]: directions.append('east')
 
-        if position == 'north':
+        # Update map attributes for each necessary direction
+        for direction in directions:
+            self._update_map_attributes(new_map, direction)
+
+    def _update_map_attributes(self, new_map, axis):
+        if axis == 'north':
             self.grid = np.concatenate((self.grid, new_map.grid), axis=0)
-        elif position == 'south':
-            self.grid = np.concatenate((new_map.grid, self.grid), axis=0)
-        elif position == 'east':
-            self.grid = np.concatenate((self.grid, new_map.grid), axis=1)
-        elif position == 'west':
-            self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
+            self.axis['north'] = np.concatenate(self.bounds['north'], new_map.bounds['north'])
+            self.axis['lat'] = np.concatenate(self.bounds['lat'], new_map.bounds['lat'])
+            self.mpd['north'] = np.concatenate(self.mpd['north'], new_map.mpd['north'])
+            self.bounds['lat'][1] = np.ceil(max(self.axis['lat']))
 
-        self._update_map_attributes()
+        elif axis == 'south':
+            self.grid = np.concatenate((new_map.grid, self.grid), axis=0)
+            self.axis['north'] = np.concatenate(new_map.bounds['north'], self.bounds['north'])
+            self.axis['lat'] = np.concatenate(new_map.bounds['lat'], self.bounds['lat'])
+            self.mpd['north'] = np.concatenate(new_map.mpd['north'], self.mpd['north'])
+            self.bounds['lat'][0] = np.floor(min(self.axis['lat']))
+
+        elif axis == 'east':
+            self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
+            self.axis['east'] = np.concatenate(new_map.bounds['east'], self.bounds['east'])
+            self.axis['lon'] = np.concatenate(new_map.bounds['lon'], self.bounds['lon'])
+            self.mpd['east'] = np.concatenate(new_map.mpd['east'], self.mpd['east'])
+            self.bounds['lon'][1] = np.ceil(max(self.axis['lon']))
+
+        else:  # axis == 'west':
+            self.grid = np.concatenate((new_map.grid, self.grid), axis=1)
+            self.axis['east'] = np.concatenate(new_map.bounds['east'], self.bounds['east'])
+            self.axis['lon'] = np.concatenate(self.bounds['lon'], new_map.bounds['lon'])
+            self.mpd['east'] = np.concatenate(self.mpd['east'], new_map.mpd['east'])
+            self.bounds['lon'][0] = np.floor(min(self.axis['lon']))
 
     def save(self, file_path):
         """

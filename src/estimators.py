@@ -99,8 +99,8 @@ class IEKF:
                 "-Estimation step"
                 self._compute_gain(p_pre)
                 # Measurement Model
-                # self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
-                self.params.Z[i] = self.traj.pos.h_asl - h_agl_meas - h_map_meas
+                self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
+                # self.params.Z[i] = self.traj.pos.h_asl - h_agl_meas - h_map_meas
                 self._estimate_covariance(p_pre)
 
                 self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]
