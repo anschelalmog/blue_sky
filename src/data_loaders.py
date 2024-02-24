@@ -226,6 +226,7 @@ class Map:
         else:
             self.grid = map_full_tiles.astype(int)
 
+    #TODO: start from here, the update
     def update_map(self, new_lat, new_lon):
         new_args = set_settings()
         new_args.init_lat = new_lat, new_args.init_lon = new_lon

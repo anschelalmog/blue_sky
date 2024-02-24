@@ -1,21 +1,17 @@
 import pytest
 import numpy as np
-import os
-from icecream import ic
 from unittest.mock import patch, MagicMock, ANY
 from src.data_loaders import Map, set_settings
-from src.utils import get_mpd, cosd, sind, mocking_map
 
 
 # ------------------------------------------------|
-# must have args to create a map instance         |
+# must have args to create a full map instance    |
 # ------------------------------------------------|
 # args.maps_dir,  args.map_level, args.map_res,   |
 # args.init_lat, args.init_lon, args.avg_spd      |
 # args.psi, args.theta,                           |
 # args.acc_north, args.acc_east, args.time_end    |
 # ------------------------------------------------|
-
 
 class TestMap:
     @pytest.fixture
@@ -97,6 +93,7 @@ class TestMap:
     ])
     def test_load_tile_and_grid_state(self, map_instance, monkeypatch, exists, expected_result):
         monkeypatch.setattr("os.path.exists", lambda path: exists)
+
         def mock_load_tile(*args, **kwargs):
             return np.zeros((1201, 1201)) if exists else None
 
@@ -121,7 +118,6 @@ class TestMap:
             map_instance.save('path/to/save.mat')
             mock_savemat.assert_called_once_with('path/to/save.mat', ANY)
 
-
     def test_map_update(self, map_instance):
         original_map = map_instance
         original_map.bounds = {'lat': [37, 38], 'lon': [21, 22]}
@@ -130,5 +126,3 @@ class TestMap:
         original_map.update_map(38.4, 21.2)
         assert original_map.bounds['lat'][1] >= 35
         assert original_map.bounds['lon'][1] >= 22
-
-
