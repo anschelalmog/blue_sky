@@ -123,8 +123,10 @@ class Map:
             'map_level': map_level,
             'rate': args.map_res / 3600,
             'tile_length': tile_length,
-            'ext': ext
+            'ext': ext,
+            'out_folder': args.results_folder
         }
+        self.meta['ext'] = 'mat'
         self._set_map_boundaries(args)
         self._set_axis()
         self._create_grid()
@@ -210,8 +212,10 @@ class Map:
     def _load_tile(tile_path, tile_length, e, n):
         try:
             print(f'Trying to load tile: {tile_path}')
-            ret = sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
+            ret = sp.loadmat(tile_path)['elevation_data']
+            # ret = sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
             print(f'Loaded tile: E0{e} n{n}')
+            return ret
         except FileNotFoundError:
             print(f'file not found: {tile_path}')
             return None
@@ -220,7 +224,7 @@ class Map:
         if np.all(map_full_tiles == 0) or np.all(np.isnan(map_full_tiles)):
             self.grid = mocking_map(map_full_tiles)
         else:
-            self.grid = map_full_tiles
+            self.grid = map_full_tiles.astype(int)
 
     def update_map(self, new_lat, new_lon):
         new_args = set_settings()
@@ -285,6 +289,57 @@ class Map:
             print(f"Map saved successfully to {file_path}")
         except Exception as e:
             print(f"Failed to save the map: {e}")
+
+    def visualize_map(self, mode, save=False):
+        """
+        Visualizes the map in either 2D or 3D mode.
+
+        :param mode: A string that determines the visualization mode.
+                     '2D' for a two-dimensional plot and '3D' for a three-dimensional plot.
+        """
+        if self.grid is None:
+            print("Map grid is not initialized.")
+            return
+
+        if mode == '2D': # 2D visualization
+            plt.figure(figsize=(10, 10))
+            plt.imshow(self.grid, extent=(self.axis['east'].min(), self.axis['east'].max(),
+                                          self.axis['north'].min(), self.axis['north'].max()), origin='lower')
+            title = 'Map Visualization (2D)'
+            plt.title(title)
+            plt.xlabel('East')
+            plt.ylabel('North')
+            plt.colorbar(label='Elevation')
+            plt.grid(True)
+
+            if save:
+                plt.savefig(os.path.join(self.meta['out_folder'], f'{title}.svg'))
+                plt.savefig(os.path.join(self.meta['out_folder'], f'{title}.png'))
+
+            plt.show()
+
+        elif mode == '3D':  # 3D visualization
+            North, East = np.meshgrid(self.axis['north'], self.axis['east'])
+
+            fig = plt.figure(figsize=(12, 8))
+            ax = fig.add_subplot(111, projection='3d')
+            surf = ax.plot_surface(East, North, self.grid.T, cmap='terrain', edgecolor='none')
+            title = 'Map Visualization (3D)'
+            ax.set_title(title)
+            ax.set_xlabel('East')
+            ax.set_ylabel('North')
+            ax.set_zlabel('Elevation')
+
+            fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5)
+
+            if save:
+                plt.savefig(os.path.join(self.meta['out_folder'], f'{title}.svg'))
+                plt.savefig(os.path.join(self.meta['out_folder'], f'{title}.png'))
+
+            plt.show()
+        else:
+            print("Invalid mode selected. Please choose '2D' or '3D'.")
+
 
 
 class TrajFromFile(BaseTraj):

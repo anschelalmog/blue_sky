@@ -13,7 +13,7 @@ from src.outputs_utils import Errors, Covariances, plot_results
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     map_data = Map().load(args)  # Load the map data using the provided settings
-
+    map_data.visualize_map(mode='3D', save=True)
     # Create the actual trajectory based on the map data and settings
 
     args.psi = 0
