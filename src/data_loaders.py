@@ -116,7 +116,14 @@ class Map:
             return f'Map class instance: map level {map_level}, {self.bounds}'
 
     def load(self, args):
+        required_attributes = ['maps_dir', 'map_res', 'results_folder', 'init_lat', 'init_lon', 'avg_spd', 'psi',
+                               'time_end', 'acc_north', 'acc_east']
+        for attr in required_attributes:
+            if not hasattr(args, attr):
+                raise AttributeError(f"Missing required attribute '{attr}' in 'args'.")
+
         tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
+        ext = 'mat'
         self.meta = {
             'maps_dir': args.maps_dir,
             'map_res': args.map_res,
@@ -126,7 +133,6 @@ class Map:
             'ext': ext,
             'out_folder': args.results_folder
         }
-        self.meta['ext'] = 'mat'
         self._set_map_boundaries(args)
         self._set_axis()
         self._create_grid()
@@ -174,12 +180,12 @@ class Map:
 
     def _create_grid(self, lat=None, lon=None):
 
-        # Create an empty map grid
+        # creating a new grid in running time
         if lat is not None and lon is not None:
             min_lat, max_lat = np.floor(lat), np.ceil(lat)
             min_lon, max_lon = np.floor(lon), np.ceil(lon)
 
-        # set boundaries
+        # creating a new grind before running time
         else:
             min_lat, max_lat = min(self.bounds['lat']), max(self.bounds['lat'])
             min_lon, max_lon = min(self.bounds['lon']), max(self.bounds['lon'])
@@ -226,23 +232,45 @@ class Map:
         else:
             self.grid = map_full_tiles.astype(int)
 
-    #TODO: start from here, the update
     def update_map(self, new_lat, new_lon):
-        new_args = set_settings()
-        new_args.init_lat = new_lat, new_args.init_lon = new_lon
-        new_map = Map().load(new_args)
+        # Error Handling for invalid inputs
+        if not isinstance(new_lat, (int, float)) or not isinstance(new_lon, (int, float)):
+            raise ValueError("Invalid latitude or longitude. Both should be numeric.")
 
-        directions = []
-        if new_lat > self.bounds['lat'][1]: directions.append('north')
-        if new_lat < self.bounds['lat'][0]: directions.append('south')
-        if new_lon < self.bounds['lon'][0]: directions.append('west')
-        if new_lon > self.bounds['lon'][1]: directions.append('east')
+        new_lat_start, new_lat_end = np.floor(new_lat), np.ceil(new_lat)
+        new_lon_start, new_lon_end = np.floor(new_lon), np.ceil(new_lon)
 
-        # Update map attributes for each necessary direction
-        for direction in directions:
-            self._update_map_attributes(new_map, direction)
+        # Determine if an update is necessary
+        boundary_updated = False
+        if new_lat_start < self.bounds['lat'][0] or new_lat_end > self.bounds['lat'][1]:
+            init_lat = min(self.bounds['lat'][0], new_lat_start)
+            final_lat = max(self.bounds['lat'][1], new_lat_end)
+            self.bounds['lat'] = [init_lat, final_lat]
+            boundary_updated = True
+
+        if new_lon_start < self.bounds['lon'][0] or new_lon_end > self.bounds['lon'][1]:
+            init_lon = min(self.bounds['lon'][0], new_lon_start)
+            final_lon = max(self.bounds['lon'][1], new_lon_end)
+            self.bounds['lon'] = [init_lon, final_lon]
+            boundary_updated = True
+
+        # Regenerate the grid and axis only if the boundaries were updated
+        if boundary_updated:
+            self._set_axis()
+            self._create_grid()
+            print(f"Map boundaries updated to lat: {self.bounds['lat']}, lon: {self.bounds['lon']}")
+            print("Grid and axis regenerated.")
+        else:
+            print("New coordinates within existing boundaries. No update needed.")
 
     def _update_map_attributes(self, new_map, axis):
+        """
+            not in use anymore, concatenate the new map axis and grid to the old one
+
+        :param new_map: instance of Map class with no over-laping attributes to the old ones
+        :param axis: the axis it should be concatenated to
+        :return:
+        """
         if axis == 'north':
             self.grid = np.concatenate((self.grid, new_map.grid), axis=0)
             self.axis['north'] = np.concatenate(self.bounds['north'], new_map.bounds['north'])
@@ -273,10 +301,10 @@ class Map:
 
     def save(self, file_path):
         """
-           Saves the current Map instance to a .mat file.
+        Saves the current Map instance to a .mat file.
 
-           :param file_path: The path (including file name) where the .mat file will be saved.
-           """
+        :param file_path: The path (including file name) where the .mat file will be saved.
+        """
         data_to_save = {
             'grid': self.grid,
             'meta': self.meta,
@@ -288,8 +316,10 @@ class Map:
         try:
             sp.savemat(file_path, data_to_save)
             print(f"Map saved successfully to {file_path}")
+        except IOError as e:
+            print(f"Failed to save the map due to an I/O error: {e}")
         except Exception as e:
-            print(f"Failed to save the map: {e}")
+            print(f"An unexpected error occurred while saving the map: {e}")
 
     def visualize_map(self, mode, save=False):
         """
