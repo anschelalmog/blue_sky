@@ -372,6 +372,5 @@ class Map:
             print("Invalid mode selected. Please choose '2D' or '3D'.")
 
 
-
 class TrajFromFile(BaseTraj):
     pass

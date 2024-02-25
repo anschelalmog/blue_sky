@@ -27,9 +27,6 @@ if __name__ == '__main__':
     args.phi_dot = 0
 
     true_traj = CreateTraj(args).create(map_data)
-    # true_traj.plot_vel()
-    # true_traj.plot_views(map_data)
-    # true_traj.plot_trajectory(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
