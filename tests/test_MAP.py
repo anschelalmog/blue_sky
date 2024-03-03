@@ -23,7 +23,8 @@ class TestMap:
     It tests the initial state of a new Map instance, the loading of map data, boundary setting based on provided
     parameters, grid creation, tile loading, and the ability to update map boundaries and save the map state.
 
-    Fixtures: - map_instance: Provides a fresh instance of the Map class for each test method. - mock_load_tile:
+    Fixtures:
+    - map_instance: Provides a fresh instance of the Map class for each test method. - mock_load_tile:
     Mocks the _load_tile method of the Map class to return a predefined grid instead of reading from files.
 
     Methods:

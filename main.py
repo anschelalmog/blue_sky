@@ -14,7 +14,6 @@ if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     map_data = Map().load(args)  # Load the map data using the provided settings
     map_data.visualize_map(mode='2D', save=False)
-    # Create the actual trajectory based on the map data and settings
 
     args.psi = 0
     args.theta = 0
@@ -26,6 +25,7 @@ if __name__ == '__main__':
     args.theta_dot = 0
     args.phi_dot = 0
 
+    # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements

@@ -10,6 +10,42 @@ from src.data_loaders import set_settings
 
 
 class TestCreateTraj:
+    """
+    Test suite for the CreateTraj class.
+
+    This class contains a series of unit tests designed to verify the functionality and reliability of the CreateTraj
+    class. It tests the initialization of a CreateTraj instance, the behavior of Euler angles, acceleration,
+    velocity, and position calculations, as well as the trajectory creation with respect to non-uniform grid handling.
+
+    Fixtures:
+     - mock_args: Provides a mocked argument object with predefined attributes necessary for initializing a
+                  CreateTraj instance.
+     - mock_map_data: Provides mocked map data including axis information and a grid representing
+                      elevation data used in trajectory creation.
+
+    Methods:
+    - test_initialization:
+        Verifies that a new CreateTraj instance is correctly initialized with attributes
+        from the provided mock arguments.
+    - test_euler_angles:
+        Checks if Euler angles (psi, theta, phi) are approximated well by a polynomial of a given degree,
+        ensuring the rotational motion is represented accurately.
+    - test_acc_behavior:
+        Validates the acceleration behavior in the north, east, and down directions, ensuring it can
+        be approximated by a polynomial of a specified degree, indicating predictable and consistent acceleration
+        patterns.
+    - test_velocity_behavior:
+        Confirms that the velocity components in the north, east, and down directions
+        are well represented by a polynomial of a given degree, reflecting realistic velocity changes over time.
+    - test_pos_behavior:
+        Examines the position calculation in the north, east, and vertical (h_asl) directions under
+        different acceleration scenarios, ensuring the position changes are consistent with the applied
+        accelerations and can be approximated by an appropriate polynomial.
+    - test_create_traj_non_uniform_grid_handling:
+        Tests the CreateTraj class's ability to handle non-uniform grid data during trajectory creation,
+        ensuring each trajectory point is assigned a correct height value from the map data,
+        even when latitude and longitude grids are not uniform.
+    """
     @pytest.fixture
     def mock_args(self):
         # Mocking the args object with necessary attributes for CreateTraj initialization
@@ -135,7 +171,6 @@ class TestCreateTraj:
         # Calculate RSS
         rss = np.sum((pos - pos_pred) ** 2)
 
-        # for
         assert rss < expected_rss_threshold, (
             f"Position component {axis} with acceleration values {acc_values} "
             f"is not well approximated by a degree {degree} polynomial; RSS: {rss}")

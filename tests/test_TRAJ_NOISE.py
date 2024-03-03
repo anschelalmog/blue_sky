@@ -7,20 +7,52 @@ from src.create_traj import CreateTraj
 
 
 class TestNoiseTraj:
+    """
+    Test suite for the NoiseTraj class.
+
+    This class contains a series of unit tests designed to verify the functionality and reliability of adding noise to a
+    trajectory using the NoiseTraj class. It tests the addition of noise to various components of a trajectory,
+    such as Euler angles, velocity, and position, and evaluates the ability of these noised components
+    to be approximated by polynomial fits, ensuring the noise does not introduce unrealistic deviations.
+
+    Fixtures:
+    - mock_true_traj: Provides a mock instance of the CreateTraj class with predefined attributes, representing a "true"
+                      trajectory without noise.
+    - imu_errors: Supplies a dictionary of IMU error settings used to simulate realistic noise in the trajectory.
+
+    Methods:
+    - test_noise_euler_normal_distribution: Verifies that the addition of noise to Euler angles (theta, psi, phi)
+                                            follows a normal distribution and modifies the original values as expected.
+    - test_noise_velocity_normal_distribution: Ensures that the velocity components (north, east, down) are correctly
+                                                noised with a normal distribution, affecting the original zero values.
+    - test_noise_pinpoint_normal_distribution: Checks that noise added to pinpoint range measurements follows a normal
+                                               distribution, altering the initial values.
+    - test_noise_position_normal_distribution: Confirms that position components (north, east) are appropriately noised,
+                                               deviating from their initial values according to the specified normal
+                                               distribution noise parameters.
+    - test_polynomial_fit_pos_with_noise: Assesses whether the noisy position data can still be approximated by a
+                                          polynomial fit, indicating that the noise does not introduce unrealistic
+                                          behavior in the trajectory's positional data.
+    - test_polynomial_fit_vel_with_noise: Similar to the position test, this method verifies that the velocity
+                                          components, even when noised, can be approximated by a polynomial,
+                                          ensuring the noise maintains a realistic velocity profile.
+    - test_polynomial_fit_euler_with_noise: Checks that Euler angles with added noise can be approximated by a
+                                             polynomial fit, suggesting that the noisy angular data still exhibits
+                                             a trend consistent with the original trajectory.
+    """
     @pytest.fixture
     def mock_true_traj(self):
-        # Mock a CreateTraj instance with predefined attributes
+
         true_traj = Mock(spec=CreateTraj)
         true_traj.run_points = 100
         true_traj.time_vec = np.linspace(0, 99, 100)
-        true_traj.mpd_north = 1  # Assuming 1 for simplicity
-        true_traj.mpd_east = 1  # Assuming 1 for simplicity
+        true_traj.mpd_north = 1
+        true_traj.mpd_east = 1
         true_traj.pos = Mock()
         true_traj.vel = Mock()
         true_traj.euler = Mock()
         true_traj.pinpoint = Mock()
 
-        # Assign mock arrays to pos, vel, euler attributes
         for attr in ['lat', 'lon', 'north', 'east', 'h_asl', 'h_agl', 'h_map']:
             setattr(true_traj.pos, attr, np.zeros(true_traj.run_points))
 
@@ -36,77 +68,65 @@ class TestNoiseTraj:
     def imu_errors(self):
         return {
             'euler_angles': 0.1,  # radians
-            'velocity': 0.5,  # m/s
-            'altimeter_noise': 1.0,  # meters
-            'initial_position': 2.0,  # meters
-            'barometer_noise': 0.5,  # meters
-            'barometer_bias': 0.1,  # meters
+            'velocity': 20,  # m/s
+            'altimeter_noise': 5,  # meters
+            'initial_position': 20.0,  # meters
+            'barometer_noise': 20,  # meters
+            'barometer_bias': 10,  # meters
         }
 
     def test_noise_euler_normal_distribution(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
-        original_euler = np.copy(noise_traj.euler.theta)  # Assuming theta, psi, phi start as zeros
+        original_euler = np.copy(noise_traj.euler.theta)
 
         noise_traj._noise_euler(imu_errors['euler_angles'], dist='normal')
 
-        # Test that noise has been added
         assert not np.array_equal(noise_traj.euler.theta, original_euler)
-        # Additional checks could include statistical properties of the noise
 
     def test_noise_velocity_normal_distribution(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
-        original_vel = np.copy(noise_traj.vel.north)  # Assuming north, east, down start as zeros
+        original_vel = np.copy(noise_traj.vel.north)
 
         noise_traj._noise_velocity(imu_errors['velocity'], dist='normal')
 
-        # Test that noise has been added
         assert not np.array_equal(noise_traj.vel.north, original_vel)
-        # Additional checks could include statistical properties of the noise
 
     def test_noise_pinpoint_normal_distribution(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
-        original_range = np.copy(noise_traj.pinpoint.range)  # Assuming range starts as zeros
+        original_range = np.copy(noise_traj.pinpoint.range)
 
         noise_traj._noise_pinpoint(imu_errors['altimeter_noise'], dist='normal')
 
-        # Test that noise has been added
         assert not np.array_equal(noise_traj.pinpoint.range, original_range)
-        # Additional checks could include statistical properties of the noise
 
     def test_noise_position_normal_distribution(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
-        original_pos_north = np.copy(noise_traj.pos.north)  # Assuming north, east start as zeros
-
+        original_pos_north = np.copy(noise_traj.pos.north)
         noise_traj._noise_position(imu_errors['initial_position'], imu_errors['barometer_noise'],
                                    imu_errors['barometer_bias'], imu_errors['altimeter_noise'], dist='normal')
 
-        # Test that noise has been added
         assert not np.array_equal(noise_traj.pos.north, original_pos_north)
 
     def test_polynomial_fit_pos_with_noise(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
         noise_traj.noise(imu_errors, dist='normal')
 
-        # Test polynomial fit for the 'north' position component
         coeffs_north = np.polyfit(noise_traj.time_vec, noise_traj.pos.north, 1)
         poly_north = Polynomial(coeffs_north)
 
-        # The test verifies that the first derivative (velocity) remains within expected bounds despite noise
         assert np.allclose(poly_north.deriv()(noise_traj.time_vec), noise_traj.vel.north, atol=5)
 
     def test_polynomial_fit_vel_with_noise(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
         noise_traj.noise(imu_errors, dist='normal')
 
-        # Test polynomial fit for the 'north' velocity component
         coeffs_vel_north = np.polyfit(noise_traj.time_vec, noise_traj.vel.north, 1)
         poly_vel_north = Polynomial(coeffs_vel_north)
 
-        # The test verifies that the velocity trend remains linear despite noise
         assert np.allclose(poly_vel_north(noise_traj.time_vec), noise_traj.vel.north, atol=5)
 
     def test_polynomial_fit_euler_with_noise(self, mock_true_traj, imu_errors):
-        np.random.seed(42)  # Ensuring consistent noise for the test
+        np.random.seed(42)
         noise_traj = NoiseTraj(mock_true_traj)
         noise_traj.noise(imu_errors, dist='normal')
 
