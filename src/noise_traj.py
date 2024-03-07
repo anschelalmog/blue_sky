@@ -44,7 +44,7 @@ class NoiseTraj(BaseTraj):
             raise ValueError("dist must be either 'normal', 'uniform', or 'none'")
 
         self._noise_euler(imu_errors['euler_angles'], dist)
-        self._noise_acc(imu_errors['acc'], dist)
+        self._noise_acc(imu_errors['accelerometer'], dist)
         self._noise_velocity(imu_errors['velocity'], dist)
         self._noise_pinpoint(imu_errors['altimeter_noise'], dist)
         self._noise_position(imu_errors['initial_position'], imu_errors['barometer_noise'],
@@ -62,7 +62,7 @@ class NoiseTraj(BaseTraj):
         self.euler.psi += noise
         self.euler.phi += noise
 
-    def _noise_acc(self, acc_errors, dist='normal'):
+    def _noise_acc(self, acc_error, dist='normal'):
         """
         Apply noise to the acceleration measurements.
 
@@ -70,13 +70,13 @@ class NoiseTraj(BaseTraj):
         :param dist: String specifying the distribution type ('normal' or 'uniform').
         """
         if dist == 'normal':
-            noise_north = acc_errors['north'] * np.random.randn(self.run_points)
-            noise_east = acc_errors['east'] * np.random.randn(self.run_points)
-            noise_down = acc_errors['down'] * np.random.randn(self.run_points)
+            noise_north = acc_error * np.random.randn(self.run_points)
+            noise_east = acc_error * np.random.randn(self.run_points)
+            noise_down = acc_error * np.random.randn(self.run_points)
         elif dist == 'uniform':
-            noise_north = acc_errors['north'] * np.random.uniform(-1, 1, size=self.run_points)
-            noise_east = acc_errors['east'] * np.random.uniform(-1, 1, size=self.run_points)
-            noise_down = acc_errors['down'] * np.random.uniform(-1, 1, size=self.run_points)
+            noise_north = acc_error * np.random.uniform(-1, 1, size=self.run_points)
+            noise_east = acc_error * np.random.uniform(-1, 1, size=self.run_points)
+            noise_down = acc_error * np.random.uniform(-1, 1, size=self.run_points)
         else:
             raise ValueError("Unsupported distribution type. Choose 'normal' or 'uniform'.")
 

@@ -1,11 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pyulog
 import scipy.io as sp
 import os
 import argparse
 
 from src.utils import get_mpd, cosd, sind, mocking_map
 from src.base_traj import BaseTraj
+from src.pinpoint_calc import PinPoint
 
 
 def set_settings():
@@ -35,6 +37,7 @@ def set_settings():
     parser.add_argument('--flg_err_pos', type=bool, default=False, help='flag error for position')
     parser.add_argument('--flg_err_vel', type=bool, default=False, help='flag for error for velocity')
     parser.add_argument('--flg_err_alt', type=bool, default=False, help='flag error for altimeter')
+    parser.add_argument('--flg_err_acc', type=bool, default=False, help='flag error for accelerometer')
     parser.add_argument('--flg_err_eul', type=bool, default=False, help='flag error for euler angels')
     parser.add_argument('--flg_err_baro_noise', type=bool, default=False, help='flag error for barometer noise')
     parser.add_argument('--flg_err_baro_bias', type=bool, default=False, help='flag error for barometer bias')
@@ -43,6 +46,7 @@ def set_settings():
     parser.add_argument('--val_err_pos', type=float, default=200, help='error for position, in [m]')
     parser.add_argument('--val_err_vel', type=float, default=2, help='error for velocity, in [m/s]')
     parser.add_argument('--val_err_alt', type=float, default=5, help='error for altimeter, in [m]')
+    parser.add_argument('--val_err_acc', type=float, default=5, help='error for  accelerometer, in [m/s^2]')
     parser.add_argument('--val_err_eul', type=float, default=0.05, help='error for euler angels, in [deg]')
     parser.add_argument('--val_err_baro_noise', type=float, default=5, help='error for barometer, in [m]')
     parser.add_argument('--val_err_baro_bias', type=float, default=5, help='error for barometer, in [m]')
@@ -95,6 +99,7 @@ def set_settings():
         'barometer_bias': args.flg_err_baro_bias * args.val_err_baro_bias,
         'barometer_noise': args.flg_err_baro_noise * args.val_err_baro_noise,
         'altimeter_noise': args.flg_err_alt * args.val_err_alt,
+        'accelerometer': args.flg_err_acc * args.val_err_acc
     }
 
     return args
@@ -373,4 +378,35 @@ class Map:
 
 
 class TrajFromFile(BaseTraj):
-    pass
+    """
+    actually traj from address
+
+    """
+    def __init__(self, ulog_file_path):
+        self.ulg = pyulog.ULog(ulog_file_path)
+        self.run_points = len(self.ulg.get_dataset('pos_lat').data)
+        super().__init__(self.run_points)
+        self.pos.lat = self.ulg.get_dataset('pos_lat').data
+        self.pos.lon = self.ulg.get_dataset('pos_lat').data
+        self.pos.north = self.ulg.get_dataset('pos_north').data
+        self.pos.east = self.ulg.get_dataset('pos_east').data
+        self.pos.h_agl = self.ulg.get_dataset('pos_h_agl').data
+        self.pos.h_asl = self.ulg.get_dataset('pos_hsl')
+        self.pos.h_map = self.ulg.get_dataset('pos_h_map')
+        self.vel.north = self.ulg.get_dataset('pos_h_map')
+        self.vel.east = self.ulg.get_dataset('pos_h_map')
+        self.vel.down = self.ulg.get_dataset('pos_h_map')
+        self.acc.north = self.ulg.get_dataset('pos_h_map')
+        self.acc.east = self.ulg.get_dataset('pos_h_map')
+        self.acc.down = self.ulg.get_dataset('pos_h_map')
+        self.euler.psi = self.ulg.get_dataset('euler_psi')
+        self.euler.theta = self.ulg.get_dataset('euler_theta')
+        self.euler.phi = self.ulg.get_dataset('euler_phi')
+        self.pinpoint = PinPoint(self.run_points)
+        self.pinpoint.h_map = self.ulg.get_dataset('euler_theta')
+        self.pinpoint.range = self.ulg.get_dataset('euler_theta')
+        self.pinpoint.delta_east = self.ulg.get_dataset('euler_theta')
+        self.pinpoint.delta_north = self.ulg.get_dataset('euler_theta')
+        self.pinpoint.lat = self.ulg.get_dataset('euler_theta')
+        self.pinpoint.lon = self.ulg.get_dataset('euler_theta')
+

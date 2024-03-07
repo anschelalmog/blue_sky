@@ -73,6 +73,7 @@ class TestNoiseTraj:
             'initial_position': 20.0,  # meters
             'barometer_noise': 20,  # meters
             'barometer_bias': 10,  # meters
+            'accelerometer': 0.01  # m/s^2
         }
 
     def test_noise_euler_normal_distribution(self, mock_true_traj, imu_errors):
