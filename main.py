@@ -3,17 +3,17 @@ import time
 from matplotlib import pyplot as plt
 import os
 
-#
 from src.data_loaders import Map, set_settings
 from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import Errors, Covariances, plot_results
 
+
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     map_data = Map().load(args)  # Load the map data using the provided settings
-    map_data.visualize_map(mode='2D', save=False)
+    # map_data.visualize_map(mode='2D', save=False)
 
     args.psi = 0
     args.theta = 0
@@ -56,3 +56,11 @@ if __name__ == '__main__':
 
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
     pass
+"""
+px4 flight sunykatir  user guide toturial ,
+
+Qground control
+JSBC --- מקשרת בין שתיהן
+FLight Control
+gzibo
+"""

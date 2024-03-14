@@ -54,15 +54,15 @@ class NoiseTraj(BaseTraj):
 
     def _noise_euler(self, error, dist):
         if dist == 'normal':
-            noise = error * rnd.randn(self.run_points)
+            noise = error * rnd.randn(3, self.run_points)
         else:  # uniform
-            noise = error * rnd.uniform(-1, 1, size=self.run_points)
+            noise = error * rnd.uniform(-1, 1, size=(3, self.run_points))
 
-        self.euler.theta += noise
-        self.euler.psi += noise
-        self.euler.phi += noise
+        self.euler.theta += noise[1, :]
+        self.euler.psi += noise[2, :]
+        self.euler.phi += noise[3, :]
 
-    def _noise_acc(self, acc_error, dist='normal'):
+    def _noise_acc(self, error, dist='normal'):
         """
         Apply noise to the acceleration measurements.
 
@@ -70,20 +70,16 @@ class NoiseTraj(BaseTraj):
         :param dist: String specifying the distribution type ('normal' or 'uniform').
         """
         if dist == 'normal':
-            noise_north = acc_error * np.random.randn(self.run_points)
-            noise_east = acc_error * np.random.randn(self.run_points)
-            noise_down = acc_error * np.random.randn(self.run_points)
+            noise = error * rnd.randn(3, self.run_points)
         elif dist == 'uniform':
-            noise_north = acc_error * np.random.uniform(-1, 1, size=self.run_points)
-            noise_east = acc_error * np.random.uniform(-1, 1, size=self.run_points)
-            noise_down = acc_error * np.random.uniform(-1, 1, size=self.run_points)
+            noise = error * rnd.uniform(-1, 1, size=(3, self.run_points))
         else:
             raise ValueError("Unsupported distribution type. Choose 'normal' or 'uniform'.")
 
-        # Add noise to the acceleration components
-        self.acc.north += noise_north
-        self.acc.east += noise_east
-        self.acc.down += noise_down
+        self.acc.north += noise[1, :]
+        self.acc.east += noise[2, :]
+        self.acc.down += noise[3, :]
+
     def _noise_velocity(self, error, dist):
         if dist == 'normal':
             noise = error * rnd.randn(1)
@@ -167,20 +163,20 @@ class NoiseTraj(BaseTraj):
         # noise_traj._noise_random_walk('pos.north', step_error=0.1)
         # noise_traj._noise_gauss_markov('vel.north', error=0.1, correlation_time=50, time_step=1)
 
-        def _simulate_sensor_bias_drift(self, sensor_bias_attr, drift_rate, steps=None):
-            """
-            Simulate sensor bias drift over time using a random walk model.
+    def _simulate_sensor_bias_drift(self, sensor_bias_attr, drift_rate, steps=None):
+        """
+        Simulate sensor bias drift over time using a random walk model.
 
-            :param sensor_bias_attr: Attribute name (string) for the sensor bias to drift.
-            :param drift_rate: The standard deviation of the drift step.
-            :param steps: Number of steps for the drift simulation (optional, defaults to run_points).
-            """
-            if steps is None:
-                steps = self.run_points
+        :param sensor_bias_attr: Attribute name (string) for the sensor bias to drift.
+        :param drift_rate: The standard deviation of the drift step.
+        :param steps: Number of steps for the drift simulation (optional, defaults to run_points).
+        """
+        if steps is None:
+            steps = self.run_points
 
-            # Generate random walk for bias drift
-            drift = np.cumsum(drift_rate * np.random.randn(steps))
+        # Generate random walk for bias drift
+        drift = np.cumsum(drift_rate * np.random.randn(steps))
 
-            # Apply the drift to the sensor bias
-            bias_value = getattr(self, sensor_bias_attr)
-            setattr(self, sensor_bias_attr, bias_value + drift)
+        # Apply the drift to the sensor bias
+        bias_value = getattr(self, sensor_bias_attr)
+        setattr(self, sensor_bias_attr, bias_value + drift)
