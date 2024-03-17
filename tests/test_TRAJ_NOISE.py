@@ -42,17 +42,21 @@ class TestNoiseTraj:
     """
     @pytest.fixture
     def mock_true_traj(self):
-
         true_traj = Mock(spec=CreateTraj)
         true_traj.run_points = 100
         true_traj.time_vec = np.linspace(0, 99, 100)
         true_traj.mpd_north = 1
         true_traj.mpd_east = 1
+
+        # Mocking position, velocity, and euler as before
         true_traj.pos = Mock()
         true_traj.vel = Mock()
         true_traj.euler = Mock()
-        true_traj.pinpoint = Mock()
 
+        # Additionally mocking the 'acc' attribute
+        true_traj.acc = Mock()
+
+        # Setting up attributes for pos, vel, euler, and now acc
         for attr in ['lat', 'lon', 'north', 'east', 'h_asl', 'h_agl', 'h_map']:
             setattr(true_traj.pos, attr, np.zeros(true_traj.run_points))
 
@@ -61,6 +65,12 @@ class TestNoiseTraj:
 
         for attr in ['theta', 'psi', 'phi']:
             setattr(true_traj.euler, attr, np.zeros(true_traj.run_points))
+
+        # Assuming 'acc' has similar attributes to 'vel' for this example
+        for attr in ['north', 'east', 'down']:
+            setattr(true_traj.acc, attr, np.zeros(true_traj.run_points))
+
+        true_traj.pinpoint = Mock()
 
         return true_traj
 
