@@ -135,3 +135,12 @@ class TestNoiseTraj:
         poly_theta = Polynomial(coeffs_theta)
 
         assert np.allclose(poly_theta(noise_traj.time_vec), noise_traj.euler.theta, atol=0.5)
+
+def test_simulate_drift(self, mock_true_traj):
+    noise_traj = NoiseTraj(mock_true_traj)
+    noise_traj.euler.bias = 0  # Assuming there's a bias attribute
+    original_bias = noise_traj.euler.bias
+
+    noise_traj._simulate_drift('euler.bias', drift_rate=0.01)
+
+    assert noise_traj.euler.bias != original_bias

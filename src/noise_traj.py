@@ -25,97 +25,173 @@ class NoiseTraj(BaseTraj):
 
         self.pos.h_agl = true_traj.pos.h_asl - true_traj.pos.h_map
 
-    def noise(self, imu_errors, dist='normal'):
+    def noise(self, imu_errors, dist='normal', approach='bottom-up'):
         """
         Add noise to the trajectory based on specified distribution.
 
-        :param imu_errors: Dictionary containing error settings.
-        :param dist: String specifying the distribution type ('normal', 'uniform' or 'none').
+        :param imu_errors: Dictionary containing errors magnitudes
+        :param dist: String specify kind 'normal', 'uniform' or 'none'.
+        :param approach: String specifying the noise introduction approach ('bottom-up' or 'top-down').
+
         """
+        assert dist in ['normal', 'uniform', 'none'], 'Invalid distribution'
+        assert approach in ['bottom-up', 'top'], 'Invalid approach'
+
         if dist == 'none':
             print("----Applying no noise to the trajectory.----")
             return self
-
-        if dist == 'normal':
+        elif dist == 'normal':
             print("----Applying normal distribution noise to the trajectory.----")
-        elif dist == 'uniform':
+        else:  # 'uniform'
             print("----Applying uniform distribution noise to the trajectory.----")
-        else:
-            raise ValueError("dist must be either 'normal', 'uniform', or 'none'")
 
-        self._noise_euler(imu_errors['euler_angles'], dist)
-        self._noise_acc(imu_errors['accelerometer'], dist)
-        self._noise_velocity(imu_errors['velocity'], dist)
-        self._noise_pinpoint(imu_errors['altimeter_noise'], dist)
+        self._noise_euler(imu_errors['euler_angles'], dist, approach)
+        self._noise_acc(imu_errors['accelerometer'], dist, approach)
+        self._noise_velocity(imu_errors['velocity'], dist, approach)
+        self._noise_pinpoint(imu_errors['altimeter_noise'], dist, approach)
         self._noise_position(imu_errors['initial_position'], imu_errors['barometer_noise'],
-                             imu_errors['barometer_bias'], imu_errors['altimeter_noise'], dist)
+                             imu_errors['barometer_bias'], imu_errors['altimeter_noise'], dist, approach)
 
         return self
 
-    def _noise_euler(self, error, dist):
-        if dist == 'normal':
-            noise = error * rnd.randn(3, self.run_points)
-        else:  # uniform
-            noise = error * rnd.uniform(-1, 1, size=(3, self.run_points))
-
-        self.euler.theta += noise[1, :]
-        self.euler.psi += noise[2, :]
-        self.euler.phi += noise[3, :]
-
-    def _noise_acc(self, error, dist='normal'):
+    def _noise_euler(self, error, dist, approach='bottom-up'):
         """
-        Apply noise to the acceleration measurements.
+        Apply noise to the Euler angles, supporting both bottom-up and top-down approaches.
 
-        :param acc_errors: Dictionary containing acceleration error settings for north, east, and down components.
-        :param dist: String specifying the distribution type ('normal' or 'uniform').
+        :param error: Dictionary containing the magnitude of the noise, and for the bottom-up approach, additional keys
+                      for bias rate and drift rate.
+        :param dist: Distribution type ('normal' or 'uniform').
+        :param approach: Approach type ('bottom-up' or 'top-down').
         """
+
         if dist == 'normal':
-            noise = error * rnd.randn(3, self.run_points)
-        elif dist == 'uniform':
-            noise = error * rnd.uniform(-1, 1, size=(3, self.run_points))
-        else:
-            raise ValueError("Unsupported distribution type. Choose 'normal' or 'uniform'.")
+            noise = error['magnitude'] * rnd.randn(3, self.run_points)
+        else:  # Uniform
+            noise = error['magnitude'] * rnd.uniform(-1, 1, size=(3, self.run_points))
 
-        self.acc.north += noise[1, :]
-        self.acc.east += noise[2, :]
-        self.acc.down += noise[3, :]
+        if approach == 'bottom-up':
+            # For bottom-up, include bias and drift simulation
+            if 'bias_rate' in error:
+                bias = error['bias_rate'] * np.ones((3, self.run_points))
+                noise += bias
 
-    def _noise_velocity(self, error, dist):
+            if 'drift_rate' in error:
+                drift = np.cumsum(error['drift_rate'] * rnd.randn(3, self.run_points), axis=1)
+                noise += drift
+
+        self.euler.theta += noise[0, :]
+        self.euler.psi += noise[1, :]
+        self.euler.phi += noise[2, :]
+
+    def _noise_acc(self, error, dist, approach='bottom-up'):
+        """
+        Apply noise to the acceleration measurements, supporting both bottom-up and top-down approaches.
+
+        :param error: Dictionary containing the magnitude of the noise, and for the bottom-up approach, additional keys for bias rate and drift rate.
+        :param dist: Distribution type ('normal' or 'uniform').
+        :param approach: Approach type ('bottom-up' or 'top-down').
+        """
+
         if dist == 'normal':
-            noise = error * rnd.randn(1)
-        else:  # uniform
-            noise = error * rnd.uniform(-1, 1)
+            noise = error['magnitude'] * rnd.randn(3, self.run_points)
+        else:  # Uniform
+            noise = error['magnitude'] * rnd.uniform(-1, 1, size=(3, self.run_points))
 
-        self.vel.north = self.vel.north[0] + noise * np.ones(self.run_points)
-        self.vel.east = self.vel.east[0] + noise * np.ones(self.run_points)
-        self.vel.down = self.vel.down[0] + noise * np.ones(self.run_points)
+        if approach == 'bottom-up':
+            # For bottom-up, include bias and drift simulation
+            if 'bias_rate' in error:
+                bias = error['bias_rate'] * np.ones((3, self.run_points))
+                noise += bias
 
-    def _noise_pinpoint(self, error, dist):
+            if 'drift_rate' in error:
+                drift = np.cumsum(error['drift_rate'] * rnd.randn(3, self.run_points), axis=1)
+                noise += drift
+
+        self.acc.north += noise[0, :]
+        self.acc.east += noise[1, :]
+        self.acc.down += noise[2, :]
+
+    def _noise_velocity(self, error, dist, approach):
+        """
+        Apply noise to the velocity measurements, supporting both bottom-up and top-down approaches.
+
+        :param error: Dictionary containing the magnitude of the noise, and for the bottom-up approach, additional keys for bias rate and drift rate.
+        :param dist: Distribution type ('normal' or 'uniform').
+        :param approach: Approach type ('bottom-up' or 'top-down').
+        """
+        # Initialize noise based on distribution
         if dist == 'normal':
-            noise = error * rnd.randn(self.run_points)
-        else:  # uniform
-            noise = error * rnd.uniform(-1, 1, size=self.run_points)
+            noise = error['magnitude'] * rnd.randn(3, 1)
+        else:  # Uniform
+            noise = error['magnitude'] * rnd.uniform(-1, 1, size=(3, 1))
+
+        if approach == 'bottom-up':
+            # For bottom-up, include bias and drift simulation
+            if 'bias_rate' in error:
+                # Simulate constant bias over time
+                bias = error['bias_rate'] * np.ones((3, 1))
+                noise += bias
+
+            if 'drift_rate' in error:
+                # Simulate bias drift using a random walk model
+                drift = np.cumsum(error['drift_rate'] * rnd.randn(3, 1), axis=1)
+                noise += drift
+
+        # Apply the final noise to the velocity components
+        # Ensure noise is broadcasted correctly over all points
+        self.vel.north += noise[0] * np.ones(self.run_points)
+        self.vel.east += noise[1] * np.ones(self.run_points)
+        self.vel.down += noise[2] * np.ones(self.run_points)
+
+    def _noise_pinpoint(self, error, dist, approach):
+        if approach == 'top-down':
+            if dist == 'normal':
+                noise = error * rnd.randn(self.run_points)
+            else:  # uniform
+                noise = error * rnd.uniform(-1, 1, size=self.run_points)
+        # pinpoint range is based on the altimeter sensor
+        # this vector is the finalized measurements accumulating the noise
+        # in the bottom up version it is already noised
+        else:  # 'bottom - up'
+            noise = 0
 
         self.pinpoint.range += noise
 
-    def _noise_position(self, pos_error, baro_noise, baro_bias, alt_error, dist):
+    def _noise_position(self, pos_error, baro_noise, baro_bias, alt_error, dist, approach='bottom-up'):
+        """
+        Apply noise to the position measurements, supporting both bottom-up and top-down approaches.
+
+        :param pos_error: Error magnitude for position noise.
+        :param baro_noise: Noise magnitude for barometric altitude measurements.
+        :param baro_bias: Constant bias for barometric altitude.
+        :param alt_error: Error magnitude for altimeter noise.
+        :param dist: Distribution type ('normal' or 'uniform').
+        :param approach: Approach type ('bottom-up' or 'top-down').
+        """
+        # Generate base noise based on distribution
         if dist == 'normal':
             pos_noise = pos_error * rnd.randn(1)
             h_asl_noise = baro_noise * rnd.randn(self.run_points)
             h_agl_noise = alt_error * rnd.randn(self.run_points)
-        else:  # uniform
+        else:  # Uniform
             pos_noise = pos_error * rnd.uniform(-1, 1)
             h_asl_noise = baro_noise * rnd.uniform(-1, 1, size=self.run_points)
             h_agl_noise = alt_error * rnd.uniform(-1, 1, size=self.run_points)
 
-        self.pos.north = self.pos.north[0] + pos_noise + self.vel.north[0] * self.time_vec
-        self.pos.east = self.pos.east[0] + pos_noise + self.vel.east[0] * self.time_vec
-        self.pos.lat = self.pos.north / self.mpd_north
-        self.pos.lon = self.pos.east / self.mpd_east
+        if approach == 'bottom-up':
+            # For bottom-up, include bias and drift for barometric altitude
+            # Assume bias and drift for position are included in pos_noise, h_asl_noise, and h_agl_noise calculation
+            h_asl_noise += baro_bias  # Apply constant bias to barometric altitude noise
 
-        self.pos.h_asl += baro_bias + h_asl_noise + self.vel.down[0] * self.time_vec
+        # Apply the final noise to position and altitude components
+        self.pos.north += pos_noise + self.vel.north[0] * self.time_vec
+        self.pos.east += pos_noise + self.vel.east[0] * self.time_vec
+        self.pos.lat += self.pos.north / self.mpd_north  # Assuming lat/lon calculations are required after noise application
+        self.pos.lon += self.pos.east / self.mpd_east
+
+        self.pos.h_asl += h_asl_noise + self.vel.down[0] * self.time_vec
         self.pos.h_agl += h_agl_noise + self.vel.down[0] * self.time_vec
-        self.h_map = self.pos.h_asl - self.pos.h_agl
+        self.h_map = self.pos.h_asl - self.pos.h_agl  # Update map height based on new altitudes
 
     def _noise_random_walk(self, attribute, step_error, steps=None):
         """
@@ -163,7 +239,7 @@ class NoiseTraj(BaseTraj):
         # noise_traj._noise_random_walk('pos.north', step_error=0.1)
         # noise_traj._noise_gauss_markov('vel.north', error=0.1, correlation_time=50, time_step=1)
 
-    def _simulate_sensor_bias_drift(self, sensor_bias_attr, drift_rate, steps=None):
+    def _simulate_drift(self, sensor_bias_attr, drift_rate, steps=None):
         """
         Simulate sensor bias drift over time using a random walk model.
 
@@ -174,9 +250,7 @@ class NoiseTraj(BaseTraj):
         if steps is None:
             steps = self.run_points
 
-        # Generate random walk for bias drift
         drift = np.cumsum(drift_rate * np.random.randn(steps))
 
-        # Apply the drift to the sensor bias
         bias_value = getattr(self, sensor_bias_attr)
         setattr(self, sensor_bias_attr, bias_value + drift)

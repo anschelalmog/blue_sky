@@ -15,6 +15,8 @@ if __name__ == '__main__':
     map_data = Map().load(args)  # Load the map data using the provided settings
     # map_data.visualize_map(mode='2D', save=False)
 
+
+
     args.psi = 0
     args.theta = 0
     args.phi = 0
@@ -24,6 +26,7 @@ if __name__ == '__main__':
     args.psi_dot = 0
     args.theta_dot = 0
     args.phi_dot = 0
+    # args.imu_errors = {} #TODO: create a table for errors, noise magnitude drift, bias
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
