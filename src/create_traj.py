@@ -5,7 +5,7 @@ from scipy.interpolate import RegularGridInterpolator
 from src.utils import cosd, sind, get_mpd
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
-
+from src.decorators import handle_interpolation_error
 
 class CreateTraj(BaseTraj):
     def __init__(self, args):
@@ -78,6 +78,7 @@ class CreateTraj(BaseTraj):
 
         self.mpd_north, self.mpd_east = get_mpd(self.pos.lat)
 
+    @handle_interpolation_error
     def _create_traj(self, map_data):
         """
         Interpolate map data at trajectory points to calculate corresponding heights.

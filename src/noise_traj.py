@@ -54,6 +54,7 @@ class NoiseTraj(BaseTraj):
 
         return self
 
+    @property
     def _noise_euler(self, error, dist, approach='bottom-up'):
         """
         Apply noise to the Euler angles, supporting both bottom-up and top-down approaches.
@@ -192,7 +193,7 @@ class NoiseTraj(BaseTraj):
         self.pos.h_asl += h_asl_noise + self.vel.down[0] * self.time_vec
         self.pos.h_agl += h_agl_noise + self.vel.down[0] * self.time_vec
         self.h_map = self.pos.h_asl - self.pos.h_agl  # Update map height based on new altitudes
-
+    @property
     def _noise_random_walk(self, attribute, step_error, steps=None):
         """
         Simulate random walk noise for a specified attribute.
@@ -210,7 +211,7 @@ class NoiseTraj(BaseTraj):
         # Apply the noise to the specified attribute
         attr_value = getattr(self, attribute)
         setattr(self, attribute, attr_value + noise)
-
+    @property
     def _noise_gauss_markov(self, attribute, error, correlation_time, time_step):
         """
         Simulate errors using a first-order Gauss-Markov process.
@@ -239,6 +240,7 @@ class NoiseTraj(BaseTraj):
         # noise_traj._noise_random_walk('pos.north', step_error=0.1)
         # noise_traj._noise_gauss_markov('vel.north', error=0.1, correlation_time=50, time_step=1)
 
+    @propery
     def _simulate_drift(self, sensor_bias_attr, drift_rate, steps=None):
         """
         Simulate sensor bias drift over time using a random walk model.
@@ -254,3 +256,4 @@ class NoiseTraj(BaseTraj):
 
         bias_value = getattr(self, sensor_bias_attr)
         setattr(self, sensor_bias_attr, bias_value + drift)
+
