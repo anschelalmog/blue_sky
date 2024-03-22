@@ -7,10 +7,11 @@ from src.pinpoint_calc import PinPoint
 class NoiseTraj(BaseTraj):
     def __init__(self, true_traj):
         super().__init__(true_traj.run_points)
-        self.run_points = true_traj.run_points
+        self.run_points: int = true_traj.run_points
         self.time_vec = true_traj.time_vec
         self.mpd_north = true_traj.mpd_north
         self.mpd_east = true_traj.mpd_east
+        self.approach: str = None
 
         # Copy attributes of pos, vel, and euler
         for attr in ['pos', 'vel', 'euler', 'acc']:
@@ -34,8 +35,9 @@ class NoiseTraj(BaseTraj):
         :param approach: String specifying the noise introduction approach ('bottom-up' or 'top-down').
 
         """
+        self.approach = approach
         assert dist in ['normal', 'uniform', 'none'], 'Invalid distribution'
-        assert approach in ['bottom-up', 'top'], 'Invalid approach'
+        assert self.approach in ['bottom-up', 'top'], 'Invalid approach'
 
         if dist == 'none':
             print("----Applying no noise to the trajectory.----")
@@ -45,17 +47,16 @@ class NoiseTraj(BaseTraj):
         else:  # 'uniform'
             print("----Applying uniform distribution noise to the trajectory.----")
 
-        self._noise_euler(imu_errors['euler_angles'], dist, approach)
-        self._noise_acc(imu_errors['accelerometer'], dist, approach)
-        self._noise_velocity(imu_errors['velocity'], dist, approach)
-        self._noise_pinpoint(imu_errors['altimeter_noise'], dist, approach)
+        self._noise_euler(imu_errors['euler_angles'], dist)
+        self._noise_acc(imu_errors['accelerometer'], dist)
+        self._noise_velocity(imu_errors['velocity'], dist)
+        self._noise_pinpoint(imu_errors['altimeter_noise'], dist)
         self._noise_position(imu_errors['initial_position'], imu_errors['barometer_noise'],
-                             imu_errors['barometer_bias'], imu_errors['altimeter_noise'], dist, approach)
+                             imu_errors['barometer_bias'], imu_errors['altimeter_noise'], dist)
 
         return self
 
-    @property
-    def _noise_euler(self, error, dist, approach='bottom-up'):
+    def _noise_euler(self, error, dist):
         """
         Apply noise to the Euler angles, supporting both bottom-up and top-down approaches.
 
@@ -70,7 +71,7 @@ class NoiseTraj(BaseTraj):
         else:  # Uniform
             noise = error['magnitude'] * rnd.uniform(-1, 1, size=(3, self.run_points))
 
-        if approach == 'bottom-up':
+        if self.approach == 'bottom-up':
             # For bottom-up, include bias and drift simulation
             if 'bias_rate' in error:
                 bias = error['bias_rate'] * np.ones((3, self.run_points))
@@ -84,7 +85,7 @@ class NoiseTraj(BaseTraj):
         self.euler.psi += noise[1, :]
         self.euler.phi += noise[2, :]
 
-    def _noise_acc(self, error, dist, approach='bottom-up'):
+    def _noise_acc(self, error, dist):
         """
         Apply noise to the acceleration measurements, supporting both bottom-up and top-down approaches.
 
@@ -98,7 +99,7 @@ class NoiseTraj(BaseTraj):
         else:  # Uniform
             noise = error['magnitude'] * rnd.uniform(-1, 1, size=(3, self.run_points))
 
-        if approach == 'bottom-up':
+        if self.approach == 'bottom-up':
             # For bottom-up, include bias and drift simulation
             if 'bias_rate' in error:
                 bias = error['bias_rate'] * np.ones((3, self.run_points))
@@ -112,7 +113,7 @@ class NoiseTraj(BaseTraj):
         self.acc.east += noise[1, :]
         self.acc.down += noise[2, :]
 
-    def _noise_velocity(self, error, dist, approach):
+    def _noise_velocity(self, error, dist):
         """
         Apply noise to the velocity measurements, supporting both bottom-up and top-down approaches.
 
@@ -126,7 +127,7 @@ class NoiseTraj(BaseTraj):
         else:  # Uniform
             noise = error['magnitude'] * rnd.uniform(-1, 1, size=(3, 1))
 
-        if approach == 'bottom-up':
+        if self.approach == 'bottom-up':
             # For bottom-up, include bias and drift simulation
             if 'bias_rate' in error:
                 # Simulate constant bias over time
@@ -144,8 +145,8 @@ class NoiseTraj(BaseTraj):
         self.vel.east += noise[1] * np.ones(self.run_points)
         self.vel.down += noise[2] * np.ones(self.run_points)
 
-    def _noise_pinpoint(self, error, dist, approach):
-        if approach == 'top-down':
+    def _noise_pinpoint(self, error, dist):
+        if self.approach == 'top-down':
             if dist == 'normal':
                 noise = error * rnd.randn(self.run_points)
             else:  # uniform
@@ -158,7 +159,7 @@ class NoiseTraj(BaseTraj):
 
         self.pinpoint.range += noise
 
-    def _noise_position(self, pos_error, baro_noise, baro_bias, alt_error, dist, approach='bottom-up'):
+    def _noise_position(self, pos_error, baro_noise, baro_bias, alt_error, dist):
         """
         Apply noise to the position measurements, supporting both bottom-up and top-down approaches.
 
@@ -179,7 +180,7 @@ class NoiseTraj(BaseTraj):
             h_asl_noise = baro_noise * rnd.uniform(-1, 1, size=self.run_points)
             h_agl_noise = alt_error * rnd.uniform(-1, 1, size=self.run_points)
 
-        if approach == 'bottom-up':
+        if self.approach == 'bottom-up':
             # For bottom-up, include bias and drift for barometric altitude
             # Assume bias and drift for position are included in pos_noise, h_asl_noise, and h_agl_noise calculation
             h_asl_noise += baro_bias  # Apply constant bias to barometric altitude noise
@@ -187,13 +188,13 @@ class NoiseTraj(BaseTraj):
         # Apply the final noise to position and altitude components
         self.pos.north += pos_noise + self.vel.north[0] * self.time_vec
         self.pos.east += pos_noise + self.vel.east[0] * self.time_vec
-        self.pos.lat += self.pos.north / self.mpd_north  # Assuming lat/lon calculations are required after noise application
+        self.pos.lat += self.pos.north / self.mpd_north
         self.pos.lon += self.pos.east / self.mpd_east
 
         self.pos.h_asl += h_asl_noise + self.vel.down[0] * self.time_vec
         self.pos.h_agl += h_agl_noise + self.vel.down[0] * self.time_vec
         self.h_map = self.pos.h_asl - self.pos.h_agl  # Update map height based on new altitudes
-    @property
+
     def _noise_random_walk(self, attribute, step_error, steps=None):
         """
         Simulate random walk noise for a specified attribute.
@@ -211,7 +212,7 @@ class NoiseTraj(BaseTraj):
         # Apply the noise to the specified attribute
         attr_value = getattr(self, attribute)
         setattr(self, attribute, attr_value + noise)
-    @property
+
     def _noise_gauss_markov(self, attribute, error, correlation_time, time_step):
         """
         Simulate errors using a first-order Gauss-Markov process.
@@ -240,7 +241,6 @@ class NoiseTraj(BaseTraj):
         # noise_traj._noise_random_walk('pos.north', step_error=0.1)
         # noise_traj._noise_gauss_markov('vel.north', error=0.1, correlation_time=50, time_step=1)
 
-    @propery
     def _simulate_drift(self, sensor_bias_attr, drift_rate, steps=None):
         """
         Simulate sensor bias drift over time using a random walk model.
