@@ -5,6 +5,8 @@
       <excludeFolder url="file://$MODULE_DIR$/archive" />
       <excludeFolder url="file://$MODULE_DIR$/ref" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/Map/Level2" />
+      <excludeFolder url="file://$MODULE_DIR$/Map/source_dem" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.11 (project_B)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
