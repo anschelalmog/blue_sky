@@ -9,7 +9,7 @@ from src.base_traj import BaseTraj
 # noinspection DuplicatedCode
 
 
-class Errors(BaseTraj):
+class RunErrors(BaseTraj):
     def __init__(self, used_traj, est_traj):
         super().__init__(used_traj.run_points)
         self.pos.north = used_traj.pos.north - est_traj.pos.lat * used_traj.mpd_north

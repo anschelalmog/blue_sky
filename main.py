@@ -3,36 +3,26 @@ import time
 from matplotlib import pyplot as plt
 import os
 
-from src.data_loaders import Map, set_settings
+from src.data_loaders import Map, set_settings, IMUErrors
 from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
-from src.outputs_utils import Errors, Covariances, plot_results
+from src.outputs_utils import RunErrors, Covariances, plot_results
 
 
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
+    errors = IMUErrors(args.imu_errors)
+
     map_data = Map().load(args)  # Load the map data using the provided settings
     # map_data.visualize_map(mode='2D', save=False)
-
-
-
-    args.psi = 0
-    args.theta = 0
-    args.phi = 0
-    args.acc_north = 0
-    args.acc_east = 0
-    args.acc_down = 0
-    args.psi_dot = 0
-    args.theta_dot = 0
-    args.phi_dot = 0
-    # args.imu_errors = {} #TODO: create a table for errors, noise magnitude drift, bias
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
-    meas_traj = NoiseTraj(true_traj).noise(args.imu_errors, dist=args.noise_type)
+    meas_traj = NoiseTraj(true_traj)
+    meas_traj.add_noise(errors.imu_errors, dist=args.noise_type, approach='bottom-up')
 
     time.sleep(0.1)
     if args.kf_type == 'IEKF':
@@ -54,7 +44,7 @@ if __name__ == '__main__':
     }
 
     used_traj = true_traj if true_traj is not None else meas_traj
-    errors = Errors(used_traj, estimation_results.traj)
+    errors = RunErrors(used_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)
 
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)

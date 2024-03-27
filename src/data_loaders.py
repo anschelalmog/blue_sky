@@ -16,6 +16,8 @@ def set_settings():
     # Run Settings
     parser.add_argument('--traj_from_file', type=bool, default=False,
                         help='load the trajectory from file or to generate one')
+    parser.add_argument('--errors_from_table', type=bool, default=True,
+                        help='load the errors from file or to generate one')
     parser.add_argument('--traj_path', type=str, default='', help='the path of the trajectory file')
     parser.add_argument('--plot_results', type=bool, default=True,
                         help='plot and save plots results at the end of the run')
@@ -33,24 +35,6 @@ def set_settings():
     # parser.add_argument('--time_rate', type=float, default=1, help='time rate, in [sec]')
     parser.add_argument('--time_res', type=float, default=0.1, help='flights resolution speed, in [sec]')
 
-    # Errors Flags
-    parser.add_argument('--flg_err_pos', type=bool, default=False, help='flag error for position')
-    parser.add_argument('--flg_err_vel', type=bool, default=False, help='flag for error for velocity')
-    parser.add_argument('--flg_err_alt', type=bool, default=False, help='flag error for altimeter')
-    parser.add_argument('--flg_err_acc', type=bool, default=False, help='flag error for accelerometer')
-    parser.add_argument('--flg_err_eul', type=bool, default=False, help='flag error for euler angels')
-    parser.add_argument('--flg_err_baro_noise', type=bool, default=False, help='flag error for barometer noise')
-    parser.add_argument('--flg_err_baro_bias', type=bool, default=False, help='flag error for barometer bias')
-
-    # Errors Values
-    parser.add_argument('--val_err_pos', type=float, default=200, help='error for position, in [m]')
-    parser.add_argument('--val_err_vel', type=float, default=2, help='error for velocity, in [m/s]')
-    parser.add_argument('--val_err_alt', type=float, default=5, help='error for altimeter, in [m]')
-    parser.add_argument('--val_err_acc', type=float, default=5, help='error for  accelerometer, in [m/s^2]')
-    parser.add_argument('--val_err_eul', type=float, default=0.05, help='error for euler angels, in [deg]')
-    parser.add_argument('--val_err_baro_noise', type=float, default=5, help='error for barometer, in [m]')
-    parser.add_argument('--val_err_baro_bias', type=float, default=5, help='error for barometer, in [m]')
-
     # Kalman Filter Settings
     parser.add_argument('--kf_type', type=str, default='IEKF', help='kalman filter type, format: IEKF or UKF')
     # dX = [ΔPos_North, ΔPos_East, ΔH_asl, ΔVel_North, ΔVel_East, ΔVel_Down, ΔAcc_North, ΔAcc_East, ΔAcc_Down,
@@ -58,6 +42,36 @@ def set_settings():
     parser.add_argument('--kf_state_size', type=int, default=12, help='number of state estimation')
 
     args = parser.parse_args()
+
+    if args.errors_from_table:
+        parser.add_argument('--imu_errors', type=dict, default=None, help='IMU error parameters')
+    else:
+        # Errors Flags
+        parser.add_argument('--flg_err_pos', type=bool, default=False, help='flag error for position')
+        parser.add_argument('--flg_err_vel', type=bool, default=False, help='flag for error for velocity')
+        parser.add_argument('--flg_err_alt', type=bool, default=False, help='flag error for altimeter')
+        parser.add_argument('--flg_err_acc', type=bool, default=False, help='flag error for accelerometer')
+        parser.add_argument('--flg_err_eul', type=bool, default=False, help='flag error for euler angels')
+        parser.add_argument('--flg_err_baro_noise', type=bool, default=False, help='flag error for barometer noise')
+        parser.add_argument('--flg_err_baro_bias', type=bool, default=False, help='flag error for barometer bias')
+
+        # Errors Values
+        parser.add_argument('--val_err_pos', type=float, default=200, help='error for position, in [m]')
+        parser.add_argument('--val_err_vel', type=float, default=2, help='error for velocity, in [m/s]')
+        parser.add_argument('--val_err_alt', type=float, default=5, help='error for altimeter, in [m]')
+        parser.add_argument('--val_err_acc', type=float, default=5, help='error for  accelerometer, in [m/s^2]')
+        parser.add_argument('--val_err_eul', type=float, default=0.05, help='error for euler angels, in [deg]')
+        parser.add_argument('--val_err_baro_noise', type=float, default=5, help='error for barometer, in [m]')
+        parser.add_argument('--val_err_baro_bias', type=float, default=5, help='error for barometer, in [m]')
+        parser.imu_errors = {
+            'velocity': args.flg_err_vel * args.val_err_vel,
+            'initial_position': args.flg_err_pos * args.val_err_pos,
+            'euler_angles': args.flg_err_eul * args.val_err_eul,
+            'barometer_bias': args.flg_err_baro_bias * args.val_err_baro_bias,
+            'barometer_noise': args.flg_err_baro_noise * args.val_err_baro_noise,
+            'altimeter_noise': args.flg_err_alt * args.val_err_alt,
+            'accelerometer': args.flg_err_acc * args.val_err_acc
+        }
 
     # Flight Settings
     if not args.traj_from_file:
@@ -92,15 +106,7 @@ def set_settings():
     args.time_vec = np.arange(args.time_init, args.time_end, args.time_res)
     args.map_res = 3 if args.map_level == 1 else 1
     args.results_folder = os.path.join(os.getcwd(), 'out')
-    args.imu_errors = {
-        'velocity': args.flg_err_vel * args.val_err_vel,
-        'initial_position': args.flg_err_pos * args.val_err_pos,
-        'euler_angles': args.flg_err_eul * args.val_err_eul,
-        'barometer_bias': args.flg_err_baro_bias * args.val_err_baro_bias,
-        'barometer_noise': args.flg_err_baro_noise * args.val_err_baro_noise,
-        'altimeter_noise': args.flg_err_alt * args.val_err_alt,
-        'accelerometer': args.flg_err_acc * args.val_err_acc
-    }
+
 
     return args
 
@@ -222,10 +228,8 @@ class Map:
     @staticmethod
     def _load_tile(tile_path, tile_length, e, n):
         try:
-            print(f'Trying to load tile: {tile_path}')
             ret = sp.loadmat(tile_path)['elevation_data']
-            # ret = sp.loadmat(tile_path).get('data', np.zeros((tile_length + 1, tile_length + 1)))
-            print(f'Loaded tile: E0{e} n{n}')
+            print(f'Loaded tile: E{e}N{n}')
             return ret
         except FileNotFoundError:
             print(f'file not found: {tile_path}')
@@ -379,7 +383,7 @@ class Map:
 
 class TrajFromFile(BaseTraj):
     """
-    actually traj from address
+    reading traj from a file
 
     """
     def __init__(self, ulog_file_path):
@@ -391,22 +395,55 @@ class TrajFromFile(BaseTraj):
         self.pos.north = self.ulg.get_dataset('pos_north').data
         self.pos.east = self.ulg.get_dataset('pos_east').data
         self.pos.h_agl = self.ulg.get_dataset('pos_h_agl').data
-        self.pos.h_asl = self.ulg.get_dataset('pos_hsl')
-        self.pos.h_map = self.ulg.get_dataset('pos_h_map')
-        self.vel.north = self.ulg.get_dataset('pos_h_map')
-        self.vel.east = self.ulg.get_dataset('pos_h_map')
-        self.vel.down = self.ulg.get_dataset('pos_h_map')
-        self.acc.north = self.ulg.get_dataset('pos_h_map')
-        self.acc.east = self.ulg.get_dataset('pos_h_map')
-        self.acc.down = self.ulg.get_dataset('pos_h_map')
-        self.euler.psi = self.ulg.get_dataset('euler_psi')
-        self.euler.theta = self.ulg.get_dataset('euler_theta')
-        self.euler.phi = self.ulg.get_dataset('euler_phi')
-        self.pinpoint = PinPoint(self.run_points)
-        self.pinpoint.h_map = self.ulg.get_dataset('euler_theta')
-        self.pinpoint.range = self.ulg.get_dataset('euler_theta')
-        self.pinpoint.delta_east = self.ulg.get_dataset('euler_theta')
-        self.pinpoint.delta_north = self.ulg.get_dataset('euler_theta')
-        self.pinpoint.lat = self.ulg.get_dataset('euler_theta')
-        self.pinpoint.lon = self.ulg.get_dataset('euler_theta')
+        self.pos.h_asl = self.ulg.get_dataset('pos_hsl').data
+        self.pos.h_map = self.ulg.get_dataset('pos_h_map').data
+        self.vel.north = self.ulg.get_dataset('pos_h_map').data
+        self.vel.east = self.ulg.get_dataset('pos_h_map').data
+        self.vel.down = self.ulg.get_dataset('pos_h_map').data
+        self.acc.north = self.ulg.get_dataset('pos_h_map').data
+        self.acc.east = self.ulg.get_dataset('pos_h_map').data
+        self.acc.down = self.ulg.get_dataset('pos_h_map').data
+        self.euler.psi = self.ulg.get_dataset('euler_psi').data
+        self.euler.theta = self.ulg.get_dataset('euler_theta').data
+        self.euler.phi = self.ulg.get_dataset('euler_phi').data
 
+        self.pinpoint = PinPoint(self.run_points)
+        self.pinpoint.h_map = self.ulg.get_dataset('euler_theta').data
+        self.pinpoint.range = self.ulg.get_dataset('euler_theta').data
+        self.pinpoint.delta_east = self.ulg.get_dataset('euler_theta').data
+        self.pinpoint.delta_north = self.ulg.get_dataset('euler_theta').data
+        self.pinpoint.lat = self.ulg.get_dataset('euler_theta').data
+        self.pinpoint.lon = self.ulg.get_dataset('euler_theta').data
+
+
+class IMUErrors:
+    def __init__(self, imu_errors=None, set_defaults=True):
+        self.imu_errors = {} if imu_errors is None else imu_errors
+        if set_defaults:
+            self.create_defaults_errors()
+            self.print_table()
+
+    def set_imu_error(self, imu_name, amplitude, drift, bias):
+        self.imu_errors[imu_name] = {'amplitude': amplitude, 'drift': drift, 'bias': bias}
+
+    def get_imu_error(self, imu_name):
+        return self.imu_errors.get(imu_name, {'amplitude': 0, 'drift': 0, 'bias': 0})
+
+    def create_defaults_errors(self):
+        self.set_imu_error('altimeter', amplitude=0, drift=0, bias=0)
+        self.set_imu_error('barometer', amplitude=0, drift=0, bias=0)
+        self.set_imu_error('gyroscope', amplitude=0, drift=0, bias=0)
+        self.set_imu_error('accelerometer', amplitude=0, drift=0, bias=0)
+        self.set_imu_error('velocity meter', amplitude=0, drift=0, bias=0)
+        self.set_imu_error('position', amplitude=0, drift=0, bias=0)
+
+    def print_table(self):
+        print("=" * 65)
+        print("IMU Errors".center(65))
+        print("=" * 65)
+        print("| {:^20} | {:^10} | {:^10} | {:^10} |".format("IMU Name", "amplitude", "Drift", "Bias"))
+        print("-" * 65)
+        for imu_name, error in self.imu_errors.items():
+            print("| {:^20} | {:^10} | {:^10} | {:^10} |".format(imu_name, error['amplitude'], error['drift'],
+                                                                 error['bias']))
+        print("-" * 65)

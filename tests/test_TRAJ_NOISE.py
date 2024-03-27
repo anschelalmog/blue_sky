@@ -120,7 +120,7 @@ class TestNoiseTraj:
 
     def test_polynomial_fit_pos_with_noise(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
-        noise_traj.noise(imu_errors, dist='normal')
+        noise_traj.add_noise(imu_errors, dist='normal')
 
         coeffs_north = np.polyfit(noise_traj.time_vec, noise_traj.pos.north, 1)
         poly_north = Polynomial(coeffs_north)
@@ -129,7 +129,7 @@ class TestNoiseTraj:
 
     def test_polynomial_fit_vel_with_noise(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
-        noise_traj.noise(imu_errors, dist='normal')
+        noise_traj.add_noise(imu_errors, dist='normal')
 
         coeffs_vel_north = np.polyfit(noise_traj.time_vec, noise_traj.vel.north, 1)
         poly_vel_north = Polynomial(coeffs_vel_north)
@@ -139,7 +139,7 @@ class TestNoiseTraj:
     def test_polynomial_fit_euler_with_noise(self, mock_true_traj, imu_errors):
         np.random.seed(42)
         noise_traj = NoiseTraj(mock_true_traj)
-        noise_traj.noise(imu_errors, dist='normal')
+        noise_traj.add_noise(imu_errors, dist='normal')
 
         coeffs_theta = np.polyfit(noise_traj.time_vec, noise_traj.euler.theta, 1)
         poly_theta = Polynomial(coeffs_theta)
