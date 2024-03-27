@@ -7,6 +7,7 @@ from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 from src.decorators import handle_interpolation_error
 
+
 class CreateTraj(BaseTraj):
     def __init__(self, args):
         super().__init__(args.run_points)
