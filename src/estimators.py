@@ -371,7 +371,9 @@ class UKF:
         self.curr_state = None
         self.params = UKFParams(self)  # UKF parameters
         self.traj = BaseTraj(args.run_points)
+        self.epsilon = 1e-6
         self.measurement_size = 1
+        self.traj.pinpoint = PinPoint(self.run_points)
 
     def run(self, map_data, meas):
         self._initialize_traj(meas)
@@ -472,7 +474,9 @@ class UKF:
         P = self._get_current_covariance_estimate()
 
         sigma_points[:, 0] = x
-        sqrt_matrix = np.linalg.cholesky((self.state_size + self.params.lambda_) * P)
+        # todo: choose epsilon
+        sqrt_matrix = np.linalg.cholesky((self.state_size + self.params.lambda_) * P
+                                         + self.epsilon * np.eye(self.state_size))
 
         for i in range(self.state_size):
             sigma_points[:, i + 1] = x + sqrt_matrix[:, i]

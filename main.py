@@ -25,6 +25,9 @@ if __name__ == '__main__':
     meas_traj.add_noise(errors.imu_errors, dist=args.noise_type, approach='bottom-up')
 
     time.sleep(0.1)
+
+    estimation_results = UKF(args).run(map_data, meas_traj)
+
     if args.kf_type == 'IEKF':
         # runs Iterated Extended Kalman Filter
         estimation_results = IEKF(args).run(map_data, meas_traj)
