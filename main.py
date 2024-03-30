@@ -7,7 +7,7 @@ from src.data_loaders import Map, set_settings, IMUErrors
 from src.create_traj import CreateTraj
 from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
-from src.outputs_utils import RunErrors, Covariances, plot_results
+from src.outputs_utils import RunErrors, Covariances, plot_results, print_log
 
 
 if __name__ == '__main__':
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     covariances = Covariances(estimation_results.params.P_est)
 
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
-    pass
+    print_log(args, estimation_results, errors, covariances)
 
 """
 px4 flight sunykatir  user guide toturial ,

@@ -45,6 +45,59 @@ class Covariances(BaseTraj):
         self.euler.theta = np.sqrt(covariances[10, 10, :])
         self.euler.phi = np.sqrt(covariances[11, 11, :])
 
+        self.metrics = {
+            'pos': {
+                'north': {
+                    'rmse': np.sqrt(np.mean(self.pos.north ** 2)),
+                    'max_abs_error': np.max(np.abs(self.pos.north)),
+                    'error_bound_percentage': np.mean(np.abs(self.pos.north) <= 1) * 100
+                },
+                'east': {
+                    'rmse': np.sqrt(np.mean(self.pos.east ** 2)),
+                    'max_abs_error': np.max(np.abs(self.pos.east)),
+                    'error_bound_percentage': np.mean(np.abs(self.pos.east) <= 1) * 100
+                },
+                'h_asl': {
+                    'rmse': np.sqrt(np.mean(self.pos.h_asl ** 2)),
+                    'max_abs_error': np.max(np.abs(self.pos.h_asl)),
+                    'error_bound_percentage': np.mean(np.abs(self.pos.h_asl) <= 1) * 100
+                }
+            },
+            'vel': {
+                'north': {
+                    'rmse': np.sqrt(np.mean(self.vel.north ** 2)),
+                    'max_abs_error': np.max(np.abs(self.vel.north)),
+                    'error_bound_percentage': np.mean(np.abs(self.vel.north) <= 0.1) * 100
+                },
+                'east': {
+                    'rmse': np.sqrt(np.mean(self.vel.east ** 2)),
+                    'max_abs_error': np.max(np.abs(self.vel.east)),
+                    'error_bound_percentage': np.mean(np.abs(self.vel.east) <= 0.1) * 100
+                },
+                'down': {
+                    'rmse': np.sqrt(np.mean(self.vel.down ** 2)),
+                    'max_abs_error': np.max(np.abs(self.vel.down)),
+                    'error_bound_percentage': np.mean(np.abs(self.vel.down) <= 0.1) * 100
+                }
+            },
+            'euler': {
+                'psi': {
+                    'rmse': np.sqrt(np.mean(self.euler.psi ** 2)),
+                    'max_abs_error': np.max(np.abs(self.euler.psi)),
+                    'error_bound_percentage': np.mean(np.abs(self.euler.psi) <= 1) * 100
+                },
+                'theta': {
+                    'rmse': np.sqrt(np.mean(self.euler.theta ** 2)),
+                    'max_abs_error': np.max(np.abs(self.euler.theta)),
+                    'error_bound_percentage': np.mean(np.abs(self.euler.theta) <= 1) * 100
+                },
+                'phi': {
+                    'rmse': np.sqrt(np.mean(self.euler.phi ** 2)),
+                    'max_abs_error': np.max(np.abs(self.euler.phi)),
+                    'error_bound_percentage': np.mean(np.abs(self.euler.phi) <= 1) * 100
+                }
+            }
+        }
 
    # Mapping of attribute names to their corresponding indices in the covariance matrix
         attr_indices = {
@@ -349,20 +402,14 @@ def print_log(args, estimation_results, errors, covs):
         else:  # no noise
             log_file.write("trajectory with no noise\n")
 
-
-        # est_traj = errors
-        # covariance = covs
-        #
-        # for key in ['north', 'east', 'down']:
-        #     pos_error_within_cov = np.mean(np.abs(est_traj.pos[key]) <= np.sqrt(covariance.pos[key])) * 100
-        #     vel_error_within_cov = np.mean(np.abs(est_traj.vel[key]) <= np.sqrt(covariance.vel[key])) * 100
-        #     log_file.write(
-        #         f"Percentage of Position {key.capitalize()} Error within Covariance Limit: {pos_error_within_cov:.2f}%\n")
-        #     log_file.write(
-        #         f"Percentage of Velocity {key.capitalize()} Error within Covariance Limit: {vel_error_within_cov:.2f}%\n")
-        #
-        # # Additional statistics - RMSE for position and velocity
-        # rmse_pos = np.sqrt(np.mean(np.square([est_traj.pos[key] for key in ['north', 'east', 'down']])))
-        # rmse_vel = np.sqrt(np.mean(np.square([est_traj.vel[key] for key in ['north', 'east', 'down']])))
-        # log_file.write(f"RMSE of Position: {rmse_pos:.2f}\n")
-        # log_file.write(f"RMSE of Velocity: {rmse_vel:.2f}\n")
+        log_file.write("\nMetrics:\n")
+        print("\nMetrics:")
+        for attr_group, attr_dict in errors.metrics.items():
+            log_file.write(f"\n{attr_group.upper()}:\n")
+            print(f"\n{attr_group.upper()}:")
+            for attr_name, metrics in attr_dict.items():
+                log_file.write(f"{attr_name}:\n")
+                print(f"{attr_name}:")
+                for metric_name, value in metrics.items():
+                    log_file.write(f"  {metric_name}: {value:.4f}\n")
+                    print(f"  {metric_name}: {value:.4f}")
