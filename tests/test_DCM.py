@@ -2,6 +2,7 @@ import pytest
 from numpy import array, allclose, eye
 from src.utils import DCM
 
+
 class TestDCM:
     @pytest.mark.parametrize(
         "direction, expected_dcm", [
