@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 from scipy.interpolate import interp1d, RegularGridInterpolator
-from src.utils import sind, cosd, DCM
+from src.utils import sind, cosd, DCM, progress_bar
 from icecream import ic
 
 def jac_north(psi, theta, phi):
@@ -39,8 +39,10 @@ class PinPoint:
         latV, lonV = traj.pos.lat, traj.pos.lon
         psiV, thetaV, phiV = traj.euler.psi, traj.euler.theta, traj.euler.phi
 
-        bar_desc = "pinpoint calculation"
-        for i, lat in enumerate(tqdm(traj.pos.lat, desc=bar_desc)):
+        bar_desc = "Pinpoint calculation"
+        total_iterations = traj.run_points
+
+        for i in progress_bar(total_iterations, bar_desc):
             dR = np.arange(0, traj.inits['height'])  # [m]
             lat, lon = latV[i], lonV[i]  # [deg]
             psi, theta, phi = psiV[i], thetaV[i], phiV[i]

@@ -25,13 +25,13 @@ if __name__ == '__main__':
 
     time.sleep(0.1)
 
-    # estimation_results = UKF(args).run(map_data, meas_traj)
+    estimation_results = IEKF(args).run(map_data, meas_traj)
 
     # if args.kf_type == 'IEKF':
-    # runs Iterated Extended Kalman Filter
-    estimation_results = IEKF(args).run(map_data, meas_traj)
+    #     # runs Iterated Extended Kalman Filter
+    #     estimation_results = IEKF(args).run(map_data, meas_traj)
     # else:  # args.kf_type == 'UKF':
-    # runs Unscented Kalman Filter
+    #     # runs Unscented Kalman Filter
     #     estimation_results = UKF(args).run(map_data, meas_traj)
 
     args.plots = {

@@ -99,7 +99,7 @@ class Covariances(BaseTraj):
             }
         }
 
-   # Mapping of attribute names to their corresponding indices in the covariance matrix
+        # Mapping of attribute names to their corresponding indices in the covariance matrix
         attr_indices = {
             'pos': {'north': 0, 'east': 1, 'h_asl': 2},
             'vel': {'north': 3, 'east': 4, 'down': 5},
@@ -145,7 +145,8 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         #              marker='x', color='black', label='Measured')
 
         # Estimated
-        ax.plot3D(estimation_results.traj.pos.north, estimation_results.traj.pos.east, estimation_results.traj.pos.h_asl,
+        ax.plot3D(estimation_results.traj.pos.north, estimation_results.traj.pos.east,
+                  estimation_results.traj.pos.h_asl,
                   linewidth=4, color='b', label='Estimated')
         # ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
         #           linewidth=4, color='b', label='Estimated')
@@ -176,14 +177,33 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].grid(True)
         axs[0].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
+        # Add error metrics as text on the North Position subplot
+        rmse_north = covars.metrics['pos']['north']['rmse']
+        max_abs_error_north = covars.metrics['pos']['north']['max_abs_error']
+        error_bound_percentage_north = covars.metrics['pos']['north']['error_bound_percentage']
+        axs[0].text(0.05, 0.95,
+                    f"RMSE: {rmse_north:.4f}\nMax Abs Error: {max_abs_error_north:.4f}\nError Bound Percentage: {error_bound_percentage_north:.2f}%",
+                    transform=axs[0].transAxes, verticalalignment='top', fontsize=10,
+                    bbox=dict(facecolor='white', alpha=0.8))
+
         # Error in East Position
         axs[1].plot(args.time_vec, errors.pos.east, '-r', linewidth=1)
         axs[1].plot(args.time_vec, covars.pos.east, '--b', linewidth=1)
         axs[1].plot(args.time_vec, -covars.pos.east, '--b', linewidth=1)
-        axs[1].set_title('North Position Error [m]')
+        axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
+
+        # Add error metrics as text on the East Position subplot
+        rmse_east = covars.metrics['pos']['east']['rmse']
+        max_abs_error_east = covars.metrics['pos']['east']['max_abs_error']
+        error_bound_percentage_east = covars.metrics['pos']['east']['error_bound_percentage']
+        axs[1].text(0.05, 0.95,
+                    f"RMSE: {rmse_east:.4f}\nMax Abs Error: {max_abs_error_east:.4f}\nError Bound Percentage: {error_bound_percentage_east:.2f}%",
+                    transform=axs[1].transAxes, verticalalignment='top', fontsize=10,
+                    bbox=dict(facecolor='white', alpha=0.8))
+
         # save fig
         plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
         plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
@@ -241,6 +261,15 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.plot(args.time_vec, mean_err_alt * np.ones(len(errors.pos.h_asl)), '*-k')
         plt.plot(args.time_vec, estimation_results.params.Z, '-.g')
 
+        # Add error metrics as text on the Altitude Errors plot
+        rmse_alt = covars.metrics['pos']['h_asl']['rmse']
+        max_abs_error_alt = covars.metrics['pos']['h_asl']['max_abs_error']
+        error_bound_percentage_alt = covars.metrics['pos']['h_asl']['error_bound_percentage']
+        plt.text(0.05, 0.95,
+                 f"RMSE: {rmse_alt:.4f}\nMax Abs Error: {max_abs_error_alt:.4f}\nError Bound Percentage: {error_bound_percentage_alt:.2f}%",
+                 transform=plt.gca().transAxes, verticalalignment='top', fontsize=10,
+                 bbox=dict(facecolor='white', alpha=0.8))
+
         # legend
         plt.title('Altitude Err [m]')
         plt.xlabel('Time [sec]')
@@ -262,10 +291,19 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].plot(args.time_vec, errors.euler.psi, '-r', linewidth=1)
         axs[0].plot(args.time_vec, covars.euler.psi, '--b', linewidth=1)
         axs[0].plot(args.time_vec, -covars.euler.psi, '--b', linewidth=1)
-        axs[0].set_title(r'Euler $\psi$ - roll Error [deg]')
+        axs[0].set_title(r'Euler $\psi$ - yaw Error [deg]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
         axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+
+        # Add error metrics as text on the Euler Psi subplot
+        rmse_psi = covars.metrics['euler']['psi']['rmse']
+        max_abs_error_psi = covars.metrics['euler']['psi']['max_abs_error']
+        error_bound_percentage_psi = covars.metrics['euler']['psi']['error_bound_percentage']
+        axs[0].text(0.05, 0.95,
+                    f"RMSE: {rmse_psi:.4f}\nMax Abs Error: {max_abs_error_psi:.4f}\nError Bound Percentage: {error_bound_percentage_psi:.2f}%",
+                    transform=axs[0].transAxes, verticalalignment='top', fontsize=10,
+                    bbox=dict(facecolor='white', alpha=0.8))
 
         # Error in euler theta
         axs[1].plot(args.time_vec, errors.euler.theta, '-r', linewidth=1)
@@ -276,14 +314,32 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].grid(True)
         axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
+        # Add error metrics as text on the Euler Theta subplot
+        rmse_theta = covars.metrics['euler']['theta']['rmse']
+        max_abs_error_theta = covars.metrics['euler']['theta']['max_abs_error']
+        error_bound_percentage_theta = covars.metrics['euler']['theta']['error_bound_percentage']
+        axs[1].text(0.05, 0.95,
+                    f"RMSE: {rmse_theta:.4f}\nMax Abs Error: {max_abs_error_theta:.4f}\nError Bound Percentage: {error_bound_percentage_theta:.2f}%",
+                    transform=axs[1].transAxes, verticalalignment='top', fontsize=10,
+                    bbox=dict(facecolor='white', alpha=0.8))
+
         # Error in euler phi
         axs[2].plot(args.time_vec, errors.euler.phi, '-r', linewidth=1)
         axs[2].plot(args.time_vec, covars.euler.phi, '--b', linewidth=1)
         axs[2].plot(args.time_vec, -covars.euler.phi, '--b', linewidth=1)
-        axs[2].set_title(r'Euler $\phi$ - roll Error [m]')
+        axs[2].set_title(r'Euler $\phi$ - roll Error [deg]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
         axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+
+        # Add error metrics as text on the Euler Phi subplot
+        rmse_phi = covars.metrics['euler']['phi']['rmse']
+        max_abs_error_phi = covars.metrics['euler']['phi']['max_abs_error']
+        error_bound_percentage_phi = covars.metrics['euler']['phi']['error_bound_percentage']
+        axs[2].text(0.05, 0.95,
+                    f"RMSE: {rmse_phi:.4f}\nMax Abs Error: {max_abs_error_phi:.4f}\nError Bound Percentage: {error_bound_percentage_phi:.2f}%",
+                    transform=axs[2].transAxes, verticalalignment='top', fontsize=10,
+                    bbox=dict(facecolor='white', alpha=0.8))
 
         plt.tight_layout()
 
@@ -374,7 +430,6 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
     return errors, covars
 
 
-
 def print_log(args, estimation_results, errors, covs):
     # Create a log file in the Results folder
     results_folder = args.results_folder
@@ -404,7 +459,7 @@ def print_log(args, estimation_results, errors, covs):
 
         log_file.write("\nMetrics:\n")
         print("\nMetrics:")
-        for attr_group, attr_dict in errors.metrics.items():
+        for attr_group, attr_dict in covs.metrics.items():
             log_file.write(f"\n{attr_group.upper()}:\n")
             print(f"\n{attr_group.upper()}:")
             for attr_name, metrics in attr_dict.items():

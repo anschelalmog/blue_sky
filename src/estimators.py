@@ -4,7 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from icecream import ic
 
-from src.utils import cosd, sind, DCM
+from src.utils import cosd, sind, DCM, progress_bar
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 

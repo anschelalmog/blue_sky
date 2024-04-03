@@ -1,6 +1,7 @@
 from numpy import sin, cos, pi, power, array, radians
 import numpy as np
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 
 def mocking_map(_map, flat=True, to_plot=False):
@@ -155,3 +156,23 @@ class DCM:
     @property
     def matrix(self):
         return self._dcm
+
+
+def progress_bar(total_iterations, description):
+    def update_color(pbar):
+        if pbar.n == total_iterations:
+            pbar.colour = 'green'
+        else:
+            pbar.colour = 'red'
+
+    read_bar_format = "%s{l_bar}%s{bar}%s{r_bar}%s" % (
+        "\033[37m", "\033[37m", "\033[37m", "\033[0m"
+    )
+
+    with tqdm(total=total_iterations, desc=description,bar_format=read_bar_format ,unit='iteration', ncols=80, colour='white') as pbar:
+        for i in range(total_iterations):
+            yield i
+            pbar.update(1)
+            update_color(pbar)
+
+    update_color(pbar)
