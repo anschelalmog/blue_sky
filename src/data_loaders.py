@@ -118,6 +118,7 @@ class Map:
         self.bounds = None
         self.mpd = None
         self.grid = None
+        self.mock = False
 
     def __str__(self):
         if self.meta is None:
@@ -126,7 +127,8 @@ class Map:
             map_level = self.meta['map_level']
             return f'Map class instance: map level {map_level}, {self.bounds}'
 
-    def load(self, args):
+    def load(self, args, mock=False):
+        self.mock = mock
         required_attributes = ['maps_dir', 'map_res', 'results_folder', 'init_lat', 'init_lon', 'avg_spd', 'psi',
                                'time_end', 'acc_north', 'acc_east']
         for attr in required_attributes:
@@ -236,7 +238,7 @@ class Map:
             return None
 
     def _validate_map(self, map_full_tiles):
-        if np.all(map_full_tiles == 0) or np.all(np.isnan(map_full_tiles)):
+        if np.all(map_full_tiles == 0) or np.all(np.isnan(map_full_tiles)) or self.mock:
             self.grid = mocking_map(map_full_tiles)
         else:
             self.grid = map_full_tiles.astype(int)

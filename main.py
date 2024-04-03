@@ -14,7 +14,7 @@ if __name__ == '__main__':
     errors = IMUErrors(args.imu_errors)
 
     map_data = Map().load(args)  # Load the map data using the provided settings
-    map_data.visualize_map(mode='2D', save=False)
+    # map_data.visualize_map(mode='2D', save=False)
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
@@ -25,12 +25,12 @@ if __name__ == '__main__':
 
     time.sleep(0.1)
 
-    #estimation_results = UKF(args).run(map_data, meas_traj)
+    # estimation_results = UKF(args).run(map_data, meas_traj)
 
-    #if args.kf_type == 'IEKF':
-    #runs Iterated Extended Kalman Filter
+    # if args.kf_type == 'IEKF':
+    # runs Iterated Extended Kalman Filter
     estimation_results = IEKF(args).run(map_data, meas_traj)
-    #else:  # args.kf_type == 'UKF':
+    # else:  # args.kf_type == 'UKF':
     # runs Unscented Kalman Filter
     #     estimation_results = UKF(args).run(map_data, meas_traj)
 
