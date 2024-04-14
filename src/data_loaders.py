@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pyulog
+# import pyulog
 import scipy.io as sp
 import os
 import argparse
@@ -383,40 +383,40 @@ class Map:
             print("Invalid mode selected. Please choose '2D' or '3D'.")
 
 
-class TrajFromFile(BaseTraj):
-    """
-    reading traj from a file
-
-    """
-    def __init__(self, ulog_file_path):
-        self.ulg = pyulog.ULog(ulog_file_path)
-        self.run_points = len(self.ulg.get_dataset('pos_lat').data)
-        super().__init__(self.run_points)
-        self.pos.lat = self.ulg.get_dataset('pos_lat').data
-        self.pos.lon = self.ulg.get_dataset('pos_lat').data
-        self.pos.north = self.ulg.get_dataset('pos_north').data
-        self.pos.east = self.ulg.get_dataset('pos_east').data
-        self.pos.h_agl = self.ulg.get_dataset('pos_h_agl').data
-        self.pos.h_asl = self.ulg.get_dataset('pos_hsl').data
-        self.pos.h_map = self.ulg.get_dataset('pos_h_map').data
-        self.vel.north = self.ulg.get_dataset('pos_h_map').data
-        self.vel.east = self.ulg.get_dataset('pos_h_map').data
-        self.vel.down = self.ulg.get_dataset('pos_h_map').data
-        self.acc.north = self.ulg.get_dataset('pos_h_map').data
-        self.acc.east = self.ulg.get_dataset('pos_h_map').data
-        self.acc.down = self.ulg.get_dataset('pos_h_map').data
-        self.euler.psi = self.ulg.get_dataset('euler_psi').data
-        self.euler.theta = self.ulg.get_dataset('euler_theta').data
-        self.euler.phi = self.ulg.get_dataset('euler_phi').data
-
-        self.pinpoint = PinPoint(self.run_points)
-        self.pinpoint.h_map = self.ulg.get_dataset('euler_theta').data
-        self.pinpoint.range = self.ulg.get_dataset('euler_theta').data
-        self.pinpoint.delta_east = self.ulg.get_dataset('euler_theta').data
-        self.pinpoint.delta_north = self.ulg.get_dataset('euler_theta').data
-        self.pinpoint.lat = self.ulg.get_dataset('euler_theta').data
-        self.pinpoint.lon = self.ulg.get_dataset('euler_theta').data
-
+# class TrajFromFile(BaseTraj):
+#     """
+#     reading traj from a file
+#
+#     """
+#     def __init__(self, ulog_file_path):
+#         self.ulg = pyulog.ULog(ulog_file_path)
+#         self.run_points = len(self.ulg.get_dataset('pos_lat').data)
+#         super().__init__(self.run_points)
+#         self.pos.lat = self.ulg.get_dataset('pos_lat').data
+#         self.pos.lon = self.ulg.get_dataset('pos_lat').data
+#         self.pos.north = self.ulg.get_dataset('pos_north').data
+#         self.pos.east = self.ulg.get_dataset('pos_east').data
+#         self.pos.h_agl = self.ulg.get_dataset('pos_h_agl').data
+#         self.pos.h_asl = self.ulg.get_dataset('pos_hsl').data
+#         self.pos.h_map = self.ulg.get_dataset('pos_h_map').data
+#         self.vel.north = self.ulg.get_dataset('pos_h_map').data
+#         self.vel.east = self.ulg.get_dataset('pos_h_map').data
+#         self.vel.down = self.ulg.get_dataset('pos_h_map').data
+#         self.acc.north = self.ulg.get_dataset('pos_h_map').data
+#         self.acc.east = self.ulg.get_dataset('pos_h_map').data
+#         self.acc.down = self.ulg.get_dataset('pos_h_map').data
+#         self.euler.psi = self.ulg.get_dataset('euler_psi').data
+#         self.euler.theta = self.ulg.get_dataset('euler_theta').data
+#         self.euler.phi = self.ulg.get_dataset('euler_phi').data
+#
+#         self.pinpoint = PinPoint(self.run_points)
+#         self.pinpoint.h_map = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.range = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.delta_east = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.delta_north = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.lat = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.lon = self.ulg.get_dataset('euler_theta').data
+#
 
 class IMUErrors:
     def __init__(self, imu_errors=None, set_defaults=True):

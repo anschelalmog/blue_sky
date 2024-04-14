@@ -161,8 +161,8 @@ class NoiseTraj(BaseTraj):
 
         self.pos.north += initial_pos_error + self.vel.north[0] * self.time_vec
         self.pos.east += initial_pos_error + self.vel.east[0] * self.time_vec
-        self.pos.lat += self.pos.north / self.mpd_north
-        self.pos.lon += self.pos.east / self.mpd_east
+        self.pos.lat = self.pos.north / self.mpd_north
+        self.pos.lon = self.pos.east / self.mpd_east
 
         self.pos.h_asl += h_asl_noise + self.vel.down[0] * self.time_vec
         self.pos.h_agl += h_agl_noise + self.vel.down[0] * self.time_vec
