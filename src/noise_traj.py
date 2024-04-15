@@ -27,7 +27,7 @@ class NoiseTraj(BaseTraj):
 
         self.pos.h_agl = true_traj.pos.h_asl - true_traj.pos.h_map
 
-    def add_noise(self, imu_errors, dist='normal', approach='bottom-up'):
+    def add_noise(self, imu_errors, true_traj, dist='normal', approach='bottom-up'):
         """
         Add noise to the trajectory based on specified distribution.
 
@@ -40,14 +40,14 @@ class NoiseTraj(BaseTraj):
         self.dist = dist
 
         assert self.dist in ['normal', 'uniform', 'none'], 'Invalid distribution'
-        assert self.approach in ['bottom-up', 'top'], 'Invalid approach'
+        assert self.approach in ['bottom-up', 'top-down'], 'Invalid approach'
         print(f'Applying {self.dist} noise to the trajectory')
 
         self._noise_euler(imu_errors['gyroscope'])
         self._noise_acc(imu_errors['accelerometer'])
         self._noise_velocity(imu_errors['velocity meter'])
         self._noise_pinpoint(imu_errors['altimeter'])
-        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'])
+        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'], true_traj)
 
         return self
 
@@ -144,26 +144,37 @@ class NoiseTraj(BaseTraj):
 
         self.pinpoint.range += noise
 
-    def _noise_position(self, positions_errors, barometer_errors, altimeter_errors):
+    def _noise_position(self, positions_errors, barometer_errors, altimeter_errors, true_traj):
         """
         Apply noise to the position measurements, supporting both bottom-up and top-down approaches.
-
         """
-        # Generate base noise based on distribution
-        if self.dist == 'normal':
-            initial_pos_error = positions_errors['amplitude'] * rnd.randn(1)
-            h_asl_noise = barometer_errors['amplitude'] * rnd.randn(self.run_points)
-            h_agl_noise = altimeter_errors['amplitude'] * rnd.randn(self.run_points)
-        else:  # Uniform
-            initial_pos_error = positions_errors['amplitude'] * rnd.uniform(-1, 1)
-            h_asl_noise = barometer_errors['amplitude'] * rnd.uniform(-1, 1, size=self.run_points)
-            h_agl_noise = altimeter_errors['amplitude'] * rnd.uniform(-1, 1, size=self.run_points)
 
-        self.pos.north += initial_pos_error + self.vel.north[0] * self.time_vec
-        self.pos.east += initial_pos_error + self.vel.east[0] * self.time_vec
+        # set noise
+        def generate_noise(amplitude, size):
+            if self.dist == 'normal':
+                return amplitude * rnd.randn(size)
+            else:  # uniform
+                return amplitude * rnd.uniform(-1, 1, size)
+
+        init_pos_error_north = generate_noise(positions_errors['amplitude'], 1)
+        init_pos_error_east = generate_noise(positions_errors['amplitude'], 1)
+        north_noise = generate_noise(positions_errors['amplitude'], self.run_points)
+        east_noise = generate_noise(positions_errors['amplitude'], self.run_points)
+        h_asl_noise = generate_noise(barometer_errors['amplitude'], self.run_points)
+        h_agl_noise = generate_noise(altimeter_errors['amplitude'], self.run_points)
+
+        if self.approach == 'bottom-up':
+            self.pos.north = self.pos.north[0] + init_pos_error_north + self.vel.north * self.time_vec
+            self.pos.east = self.pos.east[0] + init_pos_error_east + self.vel.east * self.time_vec
+            self.pos.h_asl = self.pos.h_asl[0] + h_asl_noise + self.vel.down * self.time_vec
+            self.pos.h_agl = self.pos.h_agl[0] + h_agl_noise + self.vel.down * self.time_vec
+
+        else:  # "top-down"
+            self.pos.north += north_noise
+            self.pos.north += east_noise
+            self.pos.h_asl += h_asl_noise
+            self.pos.h_agl += h_agl_noise
+
         self.pos.lat = self.pos.north / self.mpd_north
         self.pos.lon = self.pos.east / self.mpd_east
-
-        self.pos.h_asl += h_asl_noise + self.vel.down[0] * self.time_vec
-        self.pos.h_agl += h_agl_noise + self.vel.down[0] * self.time_vec
-        self.h_map = self.pos.h_asl - self.pos.h_agl
+        self.pos.h_map = self.pos.h_asl - self.pos.h_agl

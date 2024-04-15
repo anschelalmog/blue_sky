@@ -10,6 +10,30 @@ from src.noise_traj import NoiseTraj
 from src.estimators import IEKF, UKF
 from src.outputs_utils import RunErrors, Covariances, plot_results, print_log
 
+
+def compare_trajectories(true_traj, meas_traj):
+    print("Comparing Trajectory Components:")
+    print("=" * 40)
+
+    for attr in ['pos', 'vel', 'acc', 'euler']:
+        true_obj = getattr(true_traj, attr)
+        meas_obj = getattr(meas_traj, attr)
+
+        print(f"Comparing {attr}:")
+        for sub_attr in vars(true_obj):
+            true_val = getattr(true_obj, sub_attr)
+            meas_val = getattr(meas_obj, sub_attr)
+
+            if not np.allclose(true_val, meas_val):
+                print(f"  - {sub_attr} is not equal")
+            else:
+                print(f"  - {sub_attr} is equal")
+
+        print()
+
+    print("=" * 40)
+
+
 def plot_height_profiles(create_traj, noise_traj):
     plt.figure(figsize=(10, 5))
     plt.title('Height Profile Comparison')
@@ -20,6 +44,7 @@ def plot_height_profiles(create_traj, noise_traj):
     plt.legend()
     plt.grid(True)
     plt.show()
+
 
 def plot_trajectory_comparison(create_traj, noise_traj, map_data):
     fig = plt.figure(figsize=(14, 7))
@@ -63,12 +88,12 @@ if __name__ == '__main__':
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj)
-    meas_traj.add_noise(errors.imu_errors, dist=args.noise_type, approach='bottom-up')
+    meas_traj.add_noise(errors.imu_errors, true_traj, dist=args.noise_type, approach='top-down')
 
-    # plot_height_profiles(true_traj, meas_traj)
+    plot_height_profiles(true_traj, meas_traj)
     plot_trajectory_comparison(true_traj, meas_traj, map_data)
 
-
+    compare_trajectories(true_traj, meas_traj)
     time.sleep(0.1)
 
     estimation_results = IEKF(args).run(map_data, meas_traj)
