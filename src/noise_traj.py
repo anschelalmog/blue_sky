@@ -27,7 +27,7 @@ class NoiseTraj(BaseTraj):
 
         self.pos.h_agl = true_traj.pos.h_asl - true_traj.pos.h_map
 
-    def add_noise(self, imu_errors, true_traj, map_data, dist='normal', approach='bottom-up'):
+    def add_noise(self, imu_errors, dist='normal', approach='bottom-up'):
         """
         Add noise to the trajectory based on specified distribution.
 
@@ -47,7 +47,7 @@ class NoiseTraj(BaseTraj):
         self._noise_acc(imu_errors['accelerometer'])
         self._noise_velocity(imu_errors['velocity meter'])
         self._noise_pinpoint(imu_errors['altimeter'])
-        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'], true_traj, map_data)
+        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'])
 
         return self
 
@@ -144,7 +144,7 @@ class NoiseTraj(BaseTraj):
 
         self.pinpoint.range += noise
 
-    def _noise_position(self, positions_errors, barometer_errors, altimeter_errors, true_traj, map_data):
+    def _noise_position(self, positions_errors, barometer_errors, altimeter_errors):
         """
         Apply noise to the position measurements, supporting both bottom-up and top-down approaches.
         """

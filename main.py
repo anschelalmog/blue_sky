@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj)
-    meas_traj.add_noise(errors.imu_errors, true_traj, map_data, dist=args.noise_type, approach='top-down')
+    meas_traj.add_noise(errors.imu_errors, dist=args.noise_type, approach='top-down')
 
     plot_height_profiles(true_traj, meas_traj)
     plot_trajectory_comparison(true_traj, meas_traj, map_data)
