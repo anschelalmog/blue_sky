@@ -2,7 +2,7 @@ import numpy as np
 import numpy.random as rnd
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
-
+from matplotlib import pyplot as plt
 
 class NoiseTraj(BaseTraj):
     def __init__(self, true_traj):
@@ -27,7 +27,7 @@ class NoiseTraj(BaseTraj):
 
         self.pos.h_agl = true_traj.pos.h_asl - true_traj.pos.h_map
 
-    def add_noise(self, imu_errors, true_traj, dist='normal', approach='bottom-up'):
+    def add_noise(self, imu_errors, true_traj, map_data, dist='normal', approach='bottom-up'):
         """
         Add noise to the trajectory based on specified distribution.
 
@@ -47,7 +47,7 @@ class NoiseTraj(BaseTraj):
         self._noise_acc(imu_errors['accelerometer'])
         self._noise_velocity(imu_errors['velocity meter'])
         self._noise_pinpoint(imu_errors['altimeter'])
-        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'], true_traj)
+        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'], true_traj, map_data)
 
         return self
 
@@ -144,7 +144,7 @@ class NoiseTraj(BaseTraj):
 
         self.pinpoint.range += noise
 
-    def _noise_position(self, positions_errors, barometer_errors, altimeter_errors, true_traj):
+    def _noise_position(self, positions_errors, barometer_errors, altimeter_errors, true_traj, map_data):
         """
         Apply noise to the position measurements, supporting both bottom-up and top-down approaches.
         """

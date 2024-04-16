@@ -31,9 +31,19 @@ def compare_trajectories(true_traj, meas_traj):
 
         print()
 
+    # Compare mpd_north and mpd_east
+    print("Comparing mpd_north and mpd_east:")
+    if not np.allclose(true_traj.mpd_north, meas_traj.mpd_north):
+        print("  - mpd_north is not equal")
+    else:
+        print("  - mpd_north is equal")
+
+    if not np.allclose(true_traj.mpd_east, meas_traj.mpd_east):
+        print("  - mpd_east is not equal")
+    else:
+        print("  - mpd_east is equal")
+
     print("=" * 40)
-
-
 def plot_height_profiles(create_traj, noise_traj):
     plt.figure(figsize=(10, 5))
     plt.title('Height Profile Comparison')
@@ -88,7 +98,7 @@ if __name__ == '__main__':
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj)
-    meas_traj.add_noise(errors.imu_errors, true_traj, dist=args.noise_type, approach='top-down')
+    meas_traj.add_noise(errors.imu_errors, true_traj, map_data, dist=args.noise_type, approach='top-down')
 
     plot_height_profiles(true_traj, meas_traj)
     plot_trajectory_comparison(true_traj, meas_traj, map_data)

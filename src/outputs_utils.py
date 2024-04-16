@@ -123,19 +123,19 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         fig = plt.figure(title, figsize=(10, 12))
         ax = fig.add_subplot(111, projection='3d')
         ax.set_title('MAP', fontsize=24, fontweight='bold')
-        X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+        X, Y = np.meshgrid(map_data.axis['north'], map_data.axis['east'])
         ax.plot_surface(X, Y, map_data.grid, cmap='bone')
         plt.grid(False)
-        ax.set_xlabel('Longitude [deg]')
-        ax.set_ylabel('Latitude [deg]')
+        ax.set_xlabel('North [m]')
+        ax.set_ylabel('East [m]')
         ax.set_zlabel('Height [m]')
 
-        # Ground Truth
-        if ground_truth is not None:
-            ax.plot3D(ground_truth.pos.north, ground_truth.pos.east, ground_truth.pos.h_asl, linewidth=4, color='r',
-                      label='Ground Truth')
-            # ax.plot3D(ground_truth.pos.lon, ground_truth.pos.lat, ground_truth.pos.h_asl, linewidth=4, color='r',
-            #           label='Ground Truth')
+        # # Ground Truth
+        # if ground_truth is not None:
+        #     ax.plot3D(ground_truth.pos.north, ground_truth.pos.east, ground_truth.pos.h_asl, linewidth=4, color='r',
+        #               label='Ground Truth')
+        #     # ax.plot3D(ground_truth.pos.lon, ground_truth.pos.lat, ground_truth.pos.h_asl, linewidth=4, color='r',
+        #     #           label='Ground Truth')
 
         # Measured
         idx = 10  # every 10th element
@@ -144,12 +144,12 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         # ax.scatter3D(measurements.pos.lon[::idx], measurements.pos.lat[::idx], measurements.pos.h_asl[::idx],
         #              marker='x', color='black', label='Measured')
 
-        # Estimated
-        ax.plot3D(estimation_results.traj.pos.north, estimation_results.traj.pos.east,
-                  estimation_results.traj.pos.h_asl,
-                  linewidth=4, color='b', label='Estimated')
-        # ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
+        # # Estimated
+        # ax.plot3D(estimation_results.traj.pos.north, estimation_results.traj.pos.east,
+        #           estimation_results.traj.pos.h_asl,
         #           linewidth=4, color='b', label='Estimated')
+        # # ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
+        # #           linewidth=4, color='b', label='Estimated')
 
         # Legend
         lgd = ax.legend(loc='best')

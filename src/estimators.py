@@ -83,7 +83,7 @@ class IEKF:
             # for iter in tqdm(range(self.max_iter), desc = inner_loop):
             for iter in range(self.max_iter):
                 "-Measurement update"
-                # H_x = self._compute_measurment
+                # H_x = self._compute_measurement
                 lat, lon = self._pinpoint_coordinates(meas)
                 self._find_slopes(lat, lon, p_pre, map_data)  # updates SN, SE, Rfit
                 h_asl_meas = self.traj.pos.h_asl[i]  # meas.pos.h_asl[i]
@@ -99,8 +99,8 @@ class IEKF:
                 "-Estimation step"
                 self._compute_gain(p_pre)
                 # Measurement Model
-                self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
-                # self.params.Z[i] = self.traj.pos.h_asl - h_agl_meas - h_map_meas
+                # self.params.Z[i] = h_asl_meas - h_agl_meas - h_map_meas
+                self.params.Z[i] = self.traj.pos.h_asl[i] - h_agl_meas - h_map_meas
                 self._estimate_covariance(p_pre)
 
                 self.params.dX[:, i] = self.params.K[:, i] * self.params.Z[i]

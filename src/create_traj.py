@@ -79,6 +79,9 @@ class CreateTraj(BaseTraj):
 
         self.mpd_north, self.mpd_east = get_mpd(self.pos.lat)
 
+        self.pos.lat = self.pos.north / self.mpd_north
+        self.pos.lon = self.pos.east / self.mpd_east
+
     @handle_interpolation_error
     def _create_traj(self, map_data):
         """
