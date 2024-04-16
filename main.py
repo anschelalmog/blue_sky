@@ -100,10 +100,10 @@ if __name__ == '__main__':
     meas_traj = NoiseTraj(true_traj)
     meas_traj.add_noise(errors.imu_errors, dist=args.noise_type, approach='top-down')
 
-    plot_height_profiles(true_traj, meas_traj)
-    plot_trajectory_comparison(true_traj, meas_traj, map_data)
+    # plot_height_profiles(true_traj, meas_traj)
+    # plot_trajectory_comparison(true_traj, meas_traj, map_data)
+    # compare_trajectories(true_traj, meas_traj)
 
-    compare_trajectories(true_traj, meas_traj)
     time.sleep(0.1)
 
     estimation_results = IEKF(args).run(map_data, meas_traj)
