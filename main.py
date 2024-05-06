@@ -3,6 +3,7 @@ import time
 from matplotlib import pyplot as plt
 import os
 import numpy as np
+import itertools
 
 from src.data_loaders import Map, set_settings, IMUErrors
 from src.create_traj import CreateTraj
@@ -44,6 +45,8 @@ def compare_trajectories(true_traj, meas_traj):
         print("  - mpd_east is equal")
 
     print("=" * 40)
+
+
 def plot_height_profiles(create_traj, noise_traj):
     plt.figure(figsize=(10, 5))
     plt.title('Height Profile Comparison')
@@ -106,8 +109,76 @@ if __name__ == '__main__':
 
     time.sleep(0.1)
 
-    estimation_results = IEKF(args).run(map_data, meas_traj)
+    ####################################################
 
+    Q_values = [10 ** x for x in range(-2, 1)]
+
+    # Define state components as a dictionary with initial best Q values
+    state_components = {
+        'pos_north': {'Q': None, 'rmse': float('inf')},
+        'pos_east': {'Q': None, 'rmse': float('inf')},
+        'pos_h_asl': {'Q': None, 'rmse': float('inf')},
+        'vel_north': {'Q': None, 'rmse': float('inf')},
+        'vel_east': {'Q': None, 'rmse': float('inf')},
+        'vel_down': {'Q': None, 'rmse': float('inf')},
+        'euler_psi': {'Q': None, 'rmse': float('inf')},
+        'euler_theta': {'Q': None, 'rmse': float('inf')},
+        'euler_phi': {'Q': None, 'rmse': float('inf')}
+    }
+
+    # Print the total number of combinations
+    total_combinations = len(Q_values) ** len(state_components)
+    print(f"Total number of Q combinations: {total_combinations}")
+
+    single_iteration_duration = 2.5  # minutes
+    expected_end_time = time.strftime("%H:%M %d-%m-%Y",
+                                      time.localtime(
+                                          time.time() + (total_combinations * single_iteration_duration * 60)))
+    print(f"Expected end time: {expected_end_time}")
+
+    # Loop over all Q combinations
+    for idx, Q_combination in enumerate(itertools.product(Q_values, repeat=len(state_components))):
+        Q = np.diag(Q_combination)  # Construct Q matrix from combination
+
+        print(f"\nRunning IEKF with Q={Q_combination} (Combination {idx + 1}/{total_combinations})")
+        start_time = time.time()  # Start the timer
+
+        # Perform Kalman filter with current Q
+        estimation_results = IEKF(args).run(map_data, meas_traj, Q)
+
+        end_time = time.time()  # Stop the timer
+        duration = end_time - start_time  # Calculate the duration
+
+        used_traj = true_traj if true_traj is not None else meas_traj
+        errors = RunErrors(used_traj, estimation_results.traj)
+        covariances = Covariances(estimation_results.params.P_est)
+
+        metrics = covariances.metrics
+
+        # Update best Q values for each state component
+        for component, best_Q_info in state_components.items():
+            component_parts = component.split('_')
+            component_type = component_parts[0]
+            component_name = '_'.join(component_parts[1:])
+
+            rmse_key = 'rmse'
+            if component_type in metrics and component_name in metrics[component_type]:
+                rmse_value = metrics[component_type][component_name][rmse_key]
+                if rmse_value < best_Q_info['rmse']:
+                    state_components[component] = {'Q': Q_combination, 'rmse': rmse_value}
+                    print("best Q has changed")
+
+            # Print the duration of the iteration
+        print(f"Duration of iteration with Q={Q_combination}: {duration:.2f} seconds")
+
+    # Print the best Q values for each state component
+    print("\nBest Q values for each state component:")
+    for component, best_Q in state_components.items():
+        print(f"{component}: Q={best_Q['Q']}, RMSE={best_Q['rmse']:.4f}")
+
+############################################
+
+#########################################################################
     # if args.kf_type == 'IEKF':
     #     # runs Iterated Extended Kalman Filter
     #     estimation_results = IEKF(args).run(map_data, meas_traj)

@@ -30,7 +30,7 @@ class IEKF:
         self.traj.pinpoint = PinPoint(self.run_points)
         self.params = IEKFParams(self)
 
-    def run(self, map_data, meas):
+    def run(self, map_data, meas, Q):
         """
         This method implements the main loop for the Iterative Extended Kalman Filter (IEKF).
         IEKF is used here for estimating the trajectory of a vehicle using sensor measurements and map data.
@@ -69,7 +69,7 @@ class IEKF:
         """
 
         self._initialize_traj(meas)
-        self._initialize_params()
+        self._initialize_params(Q)
 
         desc = "Estimating Trajectory with IEKF"
         for i in tqdm(range(1, self.run_points), desc=desc):
@@ -135,14 +135,16 @@ class IEKF:
         self.traj.euler.theta[0] = meas.euler.theta[0]
         self.traj.euler.phi[0] = meas.euler.phi[0]
 
-    def _initialize_params(self):
+    def _initialize_params(self, Q):
+        self.params = IEKFParams(self)
+        self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2, 1, 1, 1, 1, 1, 1]), 2)
+        self.params.Q = Q
         self.params = IEKFParams(self)
         # initial error in pos(north, east, down) in[m],
         #                  vel(north, east, down) in [m/s],
         #                  acc(north, east, down) in [m/s^2],
         #                  euler(yaw, pitch,roll) in [deg]
         self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2, 1, 1, 1, 1, 1, 1]), 2)
-        self.params.Q = np.power(np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 1e-7)
 
         # Dynamic Equation:
         # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
