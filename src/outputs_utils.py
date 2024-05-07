@@ -468,3 +468,85 @@ def print_log(args, estimation_results, errors, covs):
                 for metric_name, value in metrics.items():
                     log_file.write(f"  {metric_name}: {value:.4f}\n")
                     print(f"  {metric_name}: {value:.4f}")
+
+
+def compare_trajectories(true_traj, meas_traj):
+    print("Comparing Trajectory Components:")
+    print("=" * 40)
+
+    for attr in ['pos', 'vel', 'acc', 'euler']:
+        true_obj = getattr(true_traj, attr)
+        meas_obj = getattr(meas_traj, attr)
+
+        print(f"Comparing {attr}:")
+        for sub_attr in vars(true_obj):
+            true_val = getattr(true_obj, sub_attr)
+            meas_val = getattr(meas_obj, sub_attr)
+
+            if not np.allclose(true_val, meas_val):
+                print(f"  - {sub_attr} is not equal")
+            else:
+                print(f"  - {sub_attr} is equal")
+
+        print()
+
+    # Compare mpd_north and mpd_east
+    print("Comparing mpd_north and mpd_east:")
+    if not np.allclose(true_traj.mpd_north, meas_traj.mpd_north):
+        print("  - mpd_north is not equal")
+    else:
+        print("  - mpd_north is equal")
+
+    if not np.allclose(true_traj.mpd_east, meas_traj.mpd_east):
+        print("  - mpd_east is not equal")
+    else:
+        print("  - mpd_east is equal")
+
+    print("=" * 40)
+
+
+def plot_height_profiles(create_traj, noise_traj):
+    plt.figure(figsize=(10, 5))
+    plt.title('Height Profile Comparison')
+    plt.plot(create_traj.time_vec, create_traj.pos.h_agl, 'g-', label='True Height')
+    plt.plot(noise_traj.time_vec, noise_traj.pos.h_agl, 'm--', label='Noisy Height')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Height [m]')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+
+def plot_trajectory_comparison(create_traj, noise_traj, map_data):
+    fig = plt.figure(figsize=(14, 7))
+
+    # 2D Plot
+    ax1 = fig.add_subplot(121)
+    ax1.title.set_text('2D Trajectory Comparison')
+    X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+    ax1.contourf(X, Y, map_data.grid, cmap='terrain', alpha=0.7)
+    ax1.plot(create_traj.pos.lon, create_traj.pos.lat, 'r-', label='True Trajectory')
+    ax1.plot(noise_traj.pos.lon, noise_traj.pos.lat, 'b--', label='Noisy Trajectory')
+    ax1.set_xlabel('Longitude')
+    ax1.set_ylabel('Latitude')
+    ax1.legend()
+
+    # 3D Plot
+    ax2 = fig.add_subplot(122, projection='3d')
+    ax2.title.set_text('3D Trajectory Comparison')
+    surf = ax2.plot_surface(X, Y, map_data.grid.T, cmap='terrain', alpha=0.5)
+    ax2.plot(create_traj.pos.lon, create_traj.pos.lat, create_traj.pos.h_asl, 'r-', label='True Trajectory')
+    ax2.plot(noise_traj.pos.lon, noise_traj.pos.lat, noise_traj.pos.h_asl, 'b--', label='Noisy Trajectory')
+    ax2.set_xlabel('Longitude')
+    ax2.set_ylabel('Latitude')
+    ax2.set_zlabel('Altitude')
+    ax2.legend()
+
+    plt.tight_layout()
+    plt.show()
+
+
+def calc_errors_covariances(meas_traj, estimation_results):
+    errors = RunErrors(meas_traj, estimation_results.traj)
+    covariances = Covariances(estimation_results.params.P_est)
+    return errors, covariances

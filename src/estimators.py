@@ -3,6 +3,7 @@ from scipy.interpolate import interp2d
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from icecream import ic
+import time
 
 from src.utils import cosd, sind, DCM, progress_bar
 from src.base_traj import BaseTraj
@@ -71,6 +72,7 @@ class IEKF:
         self._initialize_traj(meas)
         self._initialize_params()
 
+        time.sleep(0.01)
         desc = "Estimating Trajectory with IEKF"
         for i in tqdm(range(1, self.run_points), desc=desc):
             self.curr_state = i
@@ -142,7 +144,8 @@ class IEKF:
         #                  acc(north, east, down) in [m/s^2],
         #                  euler(yaw, pitch,roll) in [deg]
         self.params.P_est[:, :, 0] = np.power(np.diag([200, 200, 30, 2, 2, 2, 1, 1, 1, 1, 1, 1]), 2)
-        self.params.Q = np.power(np.diag([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 1e-7)
+        #
+        self.params.Q = np.diag([0, 0, 0, 1e-6, 1e-6, 3e-6, 0, 0, 0, 3.33e-11, 3.33e-11, 3.33e-11])
 
         # Dynamic Equation:
         # dX_k + 1 = Phi_k + 1 | k * dX_k + W_k + 1
