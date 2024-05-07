@@ -4,6 +4,7 @@ from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 from matplotlib import pyplot as plt
 
+
 class NoiseTraj(BaseTraj):
     def __init__(self, true_traj):
         super().__init__(true_traj.run_points)
