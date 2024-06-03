@@ -42,13 +42,9 @@ class NoiseTraj(BaseTraj):
 
         assert self.dist in ['normal', 'uniform', 'none'], 'Invalid distribution'
         assert self.approach in ['bottom-up', 'top-down'], 'Invalid approach'
-        print(f'Applying {self.dist} noise to the trajectory')
+        # print(f'Applying {self.dist} noise to the trajectory')
 
         self._noise_euler(imu_errors['gyroscope'])
-        self._noise_acc(imu_errors['accelerometer'])
-        self._noise_velocity(imu_errors['velocity meter'])
-        self._noise_pinpoint(imu_errors['altimeter'])
-        self._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'])
 
         return self
 

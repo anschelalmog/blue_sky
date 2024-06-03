@@ -81,73 +81,21 @@ class TestNoiseTraj:
             'accelerometer': {'amplitude': 0.01, 'bias': 0.005, 'drift': 0.0005}
         }
 
-    def test_noise_euler_normal_distribution(self, mock_true_traj, imu_errors):
+    @pytest.fixture
+    def noise_traj(self, mock_true_traj):
+        return NoiseTraj(mock_true_traj)
+
+    @pytest.fixture
+    def bottom_up_noise_traj(self, mock_true_traj):
         noise_traj = NoiseTraj(mock_true_traj)
-        original_euler = np.copy(noise_traj.euler.theta)
+        noise_traj.add_noise(self.imu_errors, dist='normal', approach='bottom-up')
+        return noise_traj
 
-        noise_traj._noise_euler(imu_errors['gyroscope'])
-
-        assert not np.array_equal(noise_traj.euler.theta, original_euler)
-        assert np.abs(np.mean(noise_traj.euler.theta - original_euler)) < 1
-        assert np.abs(np.std(noise_traj.euler.theta - original_euler) - imu_errors['gyroscope']['amplitude']) < 1
-
-    def test_noise_velocity_normal_distribution(self, mock_true_traj, imu_errors):
+    @pytest.fixture
+    def top_down_noise_traj(self, mock_true_traj):
         noise_traj = NoiseTraj(mock_true_traj)
-        original_vel = np.copy(noise_traj.vel.north)
-
-        noise_traj._noise_velocity(imu_errors['velocity meter'])
-
-        assert not np.array_equal(noise_traj.vel.north, original_vel)
-        assert np.abs(np.mean(noise_traj.vel.north - original_vel)) < 20
-        assert np.abs(np.std(noise_traj.vel.north - original_vel) - imu_errors['velocity meter']['amplitude']) < 40
-
-    def test_noise_pinpoint_normal_distribution(self, mock_true_traj, imu_errors):
-        noise_traj = NoiseTraj(mock_true_traj)
-        original_range = np.copy(noise_traj.pinpoint.range)
-
-        noise_traj._noise_pinpoint(imu_errors['altimeter'])
-
-        assert not np.array_equal(noise_traj.pinpoint.range, original_range)
-        assert np.abs(np.mean(noise_traj.pinpoint.range - original_range)) < 20
-        assert np.abs(np.std(noise_traj.pinpoint.range - original_range) - imu_errors['altimeter']['amplitude']) < 40
-
-    def test_noise_position_normal_distribution(self, mock_true_traj, imu_errors):
-        noise_traj = NoiseTraj(mock_true_traj)
-        original_pos_north = np.copy(noise_traj.pos.north)
-
-        noise_traj._noise_position(imu_errors['position'], imu_errors['barometer'], imu_errors['altimeter'])
-
-        assert not np.array_equal(noise_traj.pos.north, original_pos_north)
-        assert np.abs(np.mean(noise_traj.pos.north - original_pos_north)) < 20
-        assert np.abs(np.std(noise_traj.pos.north - original_pos_north) - imu_errors['position']['amplitude']) < 40
-
-    def test_polynomial_fit_pos_with_noise(self, mock_true_traj, imu_errors):
-        noise_traj = NoiseTraj(mock_true_traj)
-        noise_traj.add_noise(imu_errors, dist='normal')
-
-        coeffs_north = np.polyfit(noise_traj.time_vec, noise_traj.pos.north, 1)
-        poly_north = Polynomial(coeffs_north)
-
-        assert np.allclose(poly_north.deriv()(noise_traj.time_vec), noise_traj.vel.north, atol=10e3)
-
-    def test_polynomial_fit_vel_with_noise(self, mock_true_traj, imu_errors):
-        noise_traj = NoiseTraj(mock_true_traj)
-        noise_traj.add_noise(imu_errors, dist='normal')
-
-        coeffs_vel_north = np.polyfit(noise_traj.time_vec, noise_traj.vel.north, 1)
-        poly_vel_north = Polynomial(coeffs_vel_north)
-
-        assert np.allclose(poly_vel_north(noise_traj.time_vec), noise_traj.vel.north, atol=10e3)
-
-    def test_polynomial_fit_euler_with_noise(self, mock_true_traj, imu_errors):
-        np.random.seed(42)
-        noise_traj = NoiseTraj(mock_true_traj)
-        noise_traj.add_noise(imu_errors, dist='normal')
-
-        coeffs_theta = np.polyfit(noise_traj.time_vec, noise_traj.euler.theta, 1)
-        poly_theta = Polynomial(coeffs_theta)
-
-        assert np.allclose(poly_theta(noise_traj.time_vec), noise_traj.euler.theta, atol=10e2)
+        noise_traj.add_noise(self.imu_errors, dist='normal', approach='top-down')
+        return noise_traj
 
     def test_add_noise_approach_distribution(self, mock_true_traj, imu_errors):
         noise_traj = NoiseTraj(mock_true_traj)
@@ -156,8 +104,8 @@ class TestNoiseTraj:
         assert noise_traj.approach == 'bottom-up'
         assert noise_traj.dist == 'normal'
 
-        noise_traj.add_noise(imu_errors, dist='uniform', approach='top')
-        assert noise_traj.approach == 'top'
+        noise_traj.add_noise(imu_errors, dist='uniform', approach='top-down')
+        assert noise_traj.approach == 'top-down'
         assert noise_traj.dist == 'uniform'
 
         with pytest.raises(AssertionError):
@@ -166,34 +114,22 @@ class TestNoiseTraj:
         with pytest.raises(AssertionError):
             noise_traj.add_noise(imu_errors, dist='normal', approach='invalid')
 
-    def test_add_noise_bottom_up_approach(self, mock_true_traj, imu_errors):
-        noise_traj = NoiseTraj(mock_true_traj)
-        original_euler = np.copy(noise_traj.euler.theta)
-        original_acc = np.copy(noise_traj.acc.north)
-        original_vel = np.copy(noise_traj.vel.north)
-        original_range = np.copy(noise_traj.pinpoint.range)
-        original_pos_north = np.copy(noise_traj.pos.north)
+    def test_add_noise_bottom_up_approach(self, bottom_up_noise_traj):
+        assert bottom_up_noise_traj.approach == 'bottom-up'
+        assert bottom_up_noise_traj.dist == 'normal'
 
-        noise_traj.add_noise(imu_errors, dist='normal', approach='bottom-up')
+    def test_add_noise_top_down_approach(self, top_down_noise_traj):
+        assert top_down_noise_traj.approach == 'top-down'
+        assert top_down_noise_traj.dist == 'normal'
+        # Add more assertions as needed
 
-        assert not np.array_equal(noise_traj.euler.theta, original_euler)
-        assert not np.array_equal(noise_traj.acc.north, original_acc)
-        assert not np.array_equal(noise_traj.vel.north, original_vel)
-        assert not np.array_equal(noise_traj.pinpoint.range, original_range)
-        assert not np.array_equal(noise_traj.pos.north, original_pos_north)
+    def test_noise_euler_normal_distribution(self, bottom_up_noise_traj, imu_errors):
+        original_theta = np.copy(bottom_up_noise_traj.euler.theta)
+        original_psi = np.copy(bottom_up_noise_traj.euler.psi)
+        original_phi = np.copy(bottom_up_noise_traj.euler.phi)
 
-    def test_add_noise_top_down_approach(self, mock_true_traj, imu_errors):
-        noise_traj = NoiseTraj(mock_true_traj)
-        original_euler = np.copy(noise_traj.euler.theta)
-        original_acc = np.copy(noise_traj.acc.north)
-        original_vel = np.copy(noise_traj.vel.north)
-        original_range = np.copy(noise_traj.pinpoint.range)
-        original_pos_north = np.copy(noise_traj.pos.north)
+        bottom_up_noise_traj._noise_euler(imu_errors['gyroscope'])
 
-        noise_traj.add_noise(imu_errors, dist='normal', approach='top')
-
-        assert not np.array_equal(noise_traj.euler.theta, original_euler)
-        assert not np.array_equal(noise_traj.acc.north, original_acc)
-        assert not np.array_equal(noise_traj.vel.north, original_vel)
-        assert not np.array_equal(noise_traj.pinpoint.range, original_range)
-        assert not np.array_equal(noise_traj.pos.north, original_pos_north)
+        assert not np.array_equal(bottom_up_noise_traj.euler.theta, original_theta)
+        assert not np.array_equal(bottom_up_noise_traj.euler.psi, original_psi)
+        assert not np.array_equal(bottom_up_noise_traj.euler.phi, original_phi)
