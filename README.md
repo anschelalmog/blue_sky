@@ -1,14 +1,19 @@
-Blue Sky: IMU-Based Navigation System
+
+<h1 align="center">Blue Sky: IMU-Based Navigation System</h1>
 
 Note: This project is not completed yet.
 Status: May 2024
-Background
+
+## Background
+-
 
 This project explores an IMU-based navigation system for autonomous vehicles using different types of Kalman Filters. The study is conducted at the Faculty of Electrical and Computer Engineering, Technion - Israel Institute of Technology, the Control and Robotics Machine Learning Lab (CRML).
 <p align="center">
 <img src="assets/trajectory_visualization.png" width="600" height="400" />
 </p>
-Proposed Model
+
+## Proposed Model
+-
 
 The system employs Digital Elevation Maps (DEMs) to represent topographical features, which are essential for non-GPS navigation. The navigation system integrates different Kalman Filters to enhance the accuracy of trajectory planning and analysis. Key components include:
 
@@ -20,30 +25,39 @@ The system employs Digital Elevation Maps (DEMs) to represent topographical feat
 <p align="center">
 <img src="assets/model_diagram.png" width="600" height="400" />
 </p>
-Training and Evaluation
+
+## Training and Evaluation
+-
 
 The system's performance is evaluated through simulations that include terrain variations and sensor noise. The effectiveness of different Kalman Filters is assessed based on their ability to estimate position, velocity, altitude, and attitude accurately.
 <p align="center">
 <img src="assets/training_results.png" width="40%" /> <img src="assets/evaluation_results.png" width="40%" />
 </p>
-Results
-Estimation Accuracy
-Estimator	Accuracy
-IEKF	TBD
-UKF	TBD
-Files In The Repository
-File name	Purpose
-src/*.py	Source code for the main algorithms and utility functions
-Map/*.py	Map handling and preprocessing scripts
-tests/*.py	Unit tests for validating the algorithms
-main.py	Main script for running the simulations
-run_tests.sh	Bash script to execute all tests
-ContUpd_paper.docx	Detailed documentation and report of the project
-ContUpd_slides.pptx	Presentation slides summarizing the project
-README.md	Project overview and documentation
-.gitignore	Specifies files and directories to ignore in version control
-Installation
 
+## Results
+_
+| Estimation            | Accuracy |
+|-----------------------|----------|
+|IEKF	|TBD|
+|UKF	|TBD|
+
+## Files In The Repository
+_
+
+|File name	|Purpose|
+|-------------|-----------|
+|src/*.py	|Source code for the main algorithms and utility functions|
+|Map/*.py	|Map handling and preprocessing scripts|
+|tests/*.py	|Unit tests for validating the algorithms|
+|main.py	|Main script for running the simulations|
+|run_tests.sh	|Bash script to execute all tests|
+|ContUpd_paper.docx	|Detailed documentation and report of the project|
+|ContUpd_slides.pptx	|Presentation slides summarizing the project|
+|README.md	|Project overview and documentation|
+|.gitignore	|Specifies files and directories to ignore in version control|
+
+## Installation
+-
     Clone the repository.
     Install the required packages using the provided environment.yml file by running:
 
@@ -57,7 +71,8 @@ sh
 
     pip install -r requirements.txt
 
-Prerequisites
+## Prerequisites
+-
 Library	Version
 Python	3.8+
 matplotlib	3.3.4
