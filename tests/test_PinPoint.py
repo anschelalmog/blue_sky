@@ -3,6 +3,7 @@ import numpy as np
 from src.pinpoint_calc import PinPoint
 from src.create_traj import CreateTraj
 from src.data_loaders import Map
+from main import plot_sampled_trajectory
 
 
 class TestPinPoint:
@@ -92,3 +93,27 @@ class TestPinPoint:
         assert mock_traj.pinpoint.h_map.shape == (mock_traj.run_points,), \
             f"Expected h_map shape {(mock_traj.run_points,)}, but got {mock_traj.pinpoint.h_map.shape}"
 
+    @pytest.mark.parametrize("psi, theta, phi", [
+        (0, 0, 0),
+        (np.pi / 2, 0, 0),
+        (np.pi, 0, 0),
+        (0, np.pi / 16, 0),
+        (0, 0, -0.2617994 * np.pi),
+        (np.pi / 2, np.pi / 16, 0.2617994 * np.pi)
+    ])
+    def test_plot_sampled_trajectory(self, mock_args, loaded_map, psi, theta, phi):
+        # Modify initial arguments for psi, theta, phi
+        mock_args.psi = np.degrees(psi)
+        mock_args.theta = np.degrees(theta)
+        mock_args.phi = np.degrees(phi)
+
+        # Create trajectory
+        traj = CreateTraj(mock_args)
+        traj._create_euler()
+        traj._create_acc()
+        traj._create_vel()
+        traj._create_pos()
+        traj._create_traj(loaded_map)
+
+        # Generate the plots
+        plot_sampled_trajectory(traj, traj, loaded_map, n=10)

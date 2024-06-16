@@ -4,6 +4,7 @@ from src.noise_traj import *
 from src.estimators import *
 from src.outputs_utils import *
 
+
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     errors = IMUErrors(args.imu_errors)
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     true_traj = CreateTraj(args).create(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
-    meas_traj = NoiseTraj(true_traj).add_noise(errors.imu_errors, dist=args.noise_type, approach='top-down')
+    meas_traj = NoiseTraj(true_traj).add_noise(errors.imu, dist=args.noise_type, approach='bottom-up')
     plot_height_profiles(true_traj, meas_traj)
     plot_trajectory_comparison(true_traj, meas_traj, map_data)
 
