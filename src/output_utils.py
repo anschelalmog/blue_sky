@@ -550,3 +550,55 @@ def calc_errors_covariances(meas_traj, estimation_results):
     errors = RunErrors(meas_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)
     return errors, covariances
+
+
+def plot_trajectory_details(create_traj, map_data, n=50):
+    """
+    Plots the 2D trajectory, height acquisition points, and pinpoint locations on the map.
+
+    Parameters:
+    -----------
+    create_traj : CreateTraj object
+        The object containing the trajectory data.
+    map_data : object
+        The object containing the map grid data.
+    n : int
+        The step size for selecting every nth height acquisition point.
+    """
+    # Extract data
+    lon = create_traj.pos.lon
+    lat = create_traj.pos.lat
+    h_asl = create_traj.pos.h_asl
+    h_map = create_traj.pos.h_map
+
+    # Every nth point
+    nth_indices = np.arange(0, len(lat), n)
+    nth_lon = lon[nth_indices]
+    nth_lat = lat[nth_indices]
+    nth_h_asl = h_asl[nth_indices]
+
+    # Pinpoint locations
+    nth_pin_lat = create_traj.pinpoint.lat[nth_indices]
+    nth_pin_lon = create_traj.pinpoint.lon[nth_indices]
+    nth_pin_h_map = create_traj.pinpoint.h_map[nth_indices]
+
+    # Plotting
+    fig, ax1 = plt.subplots(figsize=(14, 7))
+
+    # 2D Plot
+    ax1.set_title('2D Trajectory Details')
+    X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+    ax1.contourf(X, Y, map_data.grid, cmap='bone', alpha=0.7)
+    ax1.plot(lon, lat, 'r--', label='True Trajectory')
+    ax1.scatter(nth_lon, nth_lat, color='blue', marker='x', label='Pinpoint Locations', edgecolor='w', s=64)
+    ax1.scatter(nth_pin_lon, nth_pin_lat, color='green', marker='o', label='Height Acquisition Points', edgecolor='w', s=64)
+    ax1.set_xlabel('Longitude')
+    ax1.set_ylabel('Latitude')
+    ax1.legend()
+
+    # Zoom in
+    ax1.set_xlim([min(nth_lon) - 0.01, max(nth_lon) + 0.01])
+    ax1.set_ylim([min(nth_lat) - 0.01, max(nth_lat) + 0.01])
+
+    plt.tight_layout()
+    plt.show()

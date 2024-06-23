@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pyulog
+# import pyulog
 import scipy.io as sp
 import os
 import argparse
@@ -111,20 +111,6 @@ def set_settings():
 
 
 class Map:
-    """
-    A class used to represent a geographical map with various functionalities
-    for loading map data, setting boundaries, creating grids, updating map attributes,
-    saving the map, and visualizing it in 2D or 3D.
-
-    Attributes
-    ----------
-    meta : dict: Metadata about the map.
-    axis : dict: Axis values for latitude and longitude.
-    bounds : dict: Boundaries of the map.
-    mpd : dict: Meters per degree values for north and east.
-    grid : np.ndarray: The grid representing the map.
-    mock : bool: Flag to indicate if mock data should be used.
-    """
     def __init__(self):
         self.meta = None
         self.axis = None
@@ -138,21 +124,12 @@ class Map:
             return 'Map Class instance: not initialized'
         else:
             map_level = self.meta['map_level']
-            return f'Map class instance: map level: {map_level}, {self.bounds}'
+            return f'Map class instance: map level {map_level}, {self.bounds}'
 
     def load(self, args, mock=False):
-        """
-        Loads the map data and initializes the map metadata, boundaries, axis, and grid.
-
-        Parameters
-        ----------
-        args : object: An object containing all the required attributes for loading the map.
-        mock : bool, optional, A flag to indicate if mock data should be used (default is False).
-        """
         self.mock = mock
         required_attributes = ['maps_dir', 'map_res', 'results_folder', 'init_lat', 'init_lon', 'avg_spd', 'psi',
                                'time_end', 'acc_north', 'acc_east']
-        # If an attribute is missing, raise an AttributeError indicating the missing attribute.
         for attr in required_attributes:
             if not hasattr(args, attr):
                 raise AttributeError(f"Missing required attribute '{attr}' in 'args'.")
@@ -211,6 +188,7 @@ class Map:
         final_lon = final_lon.astype(int)
 
         self.bounds = {'lat': [init_lat, final_lat], 'lon': [init_lon, final_lon]}
+        # self.final_pos = [pos_final_lat, pos_final_lon]
 
     def _create_grid(self, lat=None, lon=None):
 
@@ -404,27 +382,53 @@ class Map:
             print("Invalid mode selected. Please choose '2D' or '3D'.")
 
 
+# class TrajFromFile(BaseTraj):
+#     """
+#     reading traj from a file
+#
+#     """
+#     def __init__(self, ulog_file_path):
+#         self.ulg = pyulog.ULog(ulog_file_path)
+#         self.run_points = len(self.ulg.get_dataset('pos_lat').data)
+#         super().__init__(self.run_points)
+#         self.pos.lat = self.ulg.get_dataset('pos_lat').data
+#         self.pos.lon = self.ulg.get_dataset('pos_lat').data
+#         self.pos.north = self.ulg.get_dataset('pos_north').data
+#         self.pos.east = self.ulg.get_dataset('pos_east').data
+#         self.pos.h_agl = self.ulg.get_dataset('pos_h_agl').data
+#         self.pos.h_asl = self.ulg.get_dataset('pos_hsl').data
+#         self.pos.h_map = self.ulg.get_dataset('pos_h_map').data
+#         self.vel.north = self.ulg.get_dataset('pos_h_map').data
+#         self.vel.east = self.ulg.get_dataset('pos_h_map').data
+#         self.vel.down = self.ulg.get_dataset('pos_h_map').data
+#         self.acc.north = self.ulg.get_dataset('pos_h_map').data
+#         self.acc.east = self.ulg.get_dataset('pos_h_map').data
+#         self.acc.down = self.ulg.get_dataset('pos_h_map').data
+#         self.euler.psi = self.ulg.get_dataset('euler_psi').data
+#         self.euler.theta = self.ulg.get_dataset('euler_theta').data
+#         self.euler.phi = self.ulg.get_dataset('euler_phi').data
+#
+#         self.pinpoint = PinPoint(self.run_points)
+#         self.pinpoint.h_map = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.range = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.delta_east = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.delta_north = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.lat = self.ulg.get_dataset('euler_theta').data
+#         self.pinpoint.lon = self.ulg.get_dataset('euler_theta').data
+#
+
 class IMUErrors:
     def __init__(self, imu_errors=None, set_defaults=True):
-        self.imu = {} if imu_errors is None else imu_errors
+        self.imu_errors = {} if imu_errors is None else imu_errors
         if set_defaults:
             self.create_defaults_errors()
             self.print_table()
 
-    def set_imu_error(self, name: str, amplitude: float, drift: float, bias: float):
-        """
-        Sets the error values for a specified IMU.
+    def set_imu_error(self, imu_name, amplitude, drift, bias):
+        self.imu_errors[imu_name] = {'amplitude': amplitude, 'drift': drift, 'bias': bias}
 
-        Args: name (str): The name of the IMU.
-            Valid names: 'altimeter', 'barometer', 'gyroscope', 'accelerometer', 'velocity meter', 'position'.
-        amplitude (float): The amplitude error value.
-        drift (float): The drift error value.
-        bias (float): The bias error value.
-        """
-        self.imu[name] = {'amplitude': amplitude, 'drift': drift, 'bias': bias}
-
-    def get_imu_error(self, name):
-        return self.imu.get(name, {'amplitude': 0, 'drift': 0, 'bias': 0})
+    def get_imu_error(self, imu_name):
+        return self.imu_errors.get(imu_name, {'amplitude': 0, 'drift': 0, 'bias': 0})
 
     def create_defaults_errors(self):
         self.set_imu_error('altimeter', amplitude=0, drift=0, bias=0)
@@ -440,36 +444,7 @@ class IMUErrors:
         print("=" * 65)
         print("| {:^20} | {:^10} | {:^10} | {:^10} |".format("IMU Name", "amplitude", "Drift", "Bias"))
         print("-" * 65)
-        for imu_name, error in self.imu.items():
+        for imu_name, error in self.imu_errors.items():
             print("| {:^20} | {:^10} | {:^10} | {:^10} |".format(imu_name, error['amplitude'], error['drift'],
                                                                  error['bias']))
         print("-" * 65)
-
-
-class TrajFromFile(BaseTraj):
-    """
-    reading traj from a file
-
-    """
-
-    def __init__(self, ulog_file_path):
-        self.ulg = pyulog.ULog(ulog_file_path)
-        self.run_points = len(self.ulg.get_dataset('pos_lat').data)
-        super().__init__(self.run_points)
-        self.pos.lat = self.ulg.get_dataset('pos_lat').data
-        self.pos.lon = self.ulg.get_dataset('pos_lat').data
-        self.pos.north = self.ulg.get_dataset('pos_north').data
-        self.pos.east = self.ulg.get_dataset('pos_east').data
-        self.pos.h_agl = self.ulg.get_dataset('pos_h_agl').data
-        self.pos.h_asl = self.ulg.get_dataset('pos_hsl').data
-        self.pos.h_map = self.ulg.get_dataset('pos_h_map').data
-        self.vel.north = self.ulg.get_dataset('pos_h_map').data
-        self.vel.east = self.ulg.get_dataset('pos_h_map').data
-        self.vel.down = self.ulg.get_dataset('pos_h_map').data
-        self.acc.north = self.ulg.get_dataset('pos_h_map').data
-        self.acc.east = self.ulg.get_dataset('pos_h_map').data
-        self.acc.down = self.ulg.get_dataset('pos_h_map').data
-        self.euler.psi = self.ulg.get_dataset('euler_psi').data
-        self.euler.theta = self.ulg.get_dataset('euler_theta').data
-        self.euler.phi = self.ulg.get_dataset('euler_phi').data
-        self.pinpoint = PinPoint(self.run_points)

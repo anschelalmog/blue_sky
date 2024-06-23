@@ -9,6 +9,28 @@ from src.decorators import handle_interpolation_error
 
 
 class CreateTraj(BaseTraj):
+    """
+    A class to create and handle trajectory data.
+
+    Attributes:
+    -----------
+    run_points : int: Number of points in the trajectory.
+    time_vec : numpy.ndarray: Array of time values corresponding to each point in the trajectory.
+    inits : dict: Initial conditions and parameters for the trajectory calculation.
+    pinpoint : PinPoint: An instance of PinPoint for pinpoint calculations.
+
+    Methods:
+    --------
+    _create_euler(): Creates Euler angle vectors.
+    _create_acc(): Creates acceleration vectors.
+    _create_vel(): Creates velocity vectors.
+    _create_pos(): Creates position vectors considering constant acceleration.
+    _create_traj(map_data): Interpolates map data at trajectory points to calculate corresponding heights.
+    create(map_data): Creates the full trajectory including Euler angles, acceleration, velocity, and position.
+    plot_vel(): Plots the velocity components (North, East, Down) as functions of time in separate subplots.
+    plot_trajectory(map_data): Plots the trajectory on the map in both 2D and 3D as subplots of the same figure.
+    plot_views(map_data): Plots the trajectory from North and East views.
+    """
     def __init__(self, args):
         super().__init__(args.run_points)
         self.run_points = args.run_points
@@ -22,17 +44,16 @@ class CreateTraj(BaseTraj):
     def _create_euler(self):
         """
         creating euler angels vectors
-
+        assuming the angels change linearly
         :returns euler angels vectors in [deg]
         """
         self.euler.psi = self.inits['psi'] + self.inits['psi_dot'] * self.time_vec
         self.euler.theta = self.inits['theta'] + self.inits['theta_dot'] * self.time_vec
-        self.euler.phi = self.inits['phi'] + self.inits['psi_dot'] * self.time_vec
+        self.euler.phi = self.inits['phi'] + self.inits['phi_dot'] * self.time_vec
 
     def _create_acc(self):
         """
         Creates the acceleration vectors
-
         """
         self.acc.north = self.inits['acc_north'] * np.ones(self.run_points)
         self.acc.east = self.inits['acc_east'] * np.ones(self.run_points)
