@@ -59,9 +59,11 @@ class PinPoint:
             dH_tag = dR * cosd(theta) * cosd(phi)
             interpolated_height = interp1d(dH_star - dH_tag, dR)
 
+            print(f"i: {i}, dH_star: {dH_star[i]}, dH_tag: {dH_tag[i]}")
             try:
                 self.range[i] = interpolated_height(0).item()  # Range to pinpoint
-            except ValueError:
+            except ValueError as e:
+                print(f"Interpolation error at index {i}: {e}")
                 assert True, "Could not interpolate"
 
             self.delta_north[i] = interpolated_height(0) * jac_north(psi, theta, phi) / traj.mpd_north[i]
@@ -74,6 +76,7 @@ class PinPoint:
             # Ground Elevation from Map at PinPoint % height map data for the pinpoint
             try:
                 self.h_map[i] = interpolator((self.lat[i], self.lon[i])).item()
-            except ValueError:
+            except ValueError as e:
+                print(f"Interpolation error for height map at index {i}: {e}")
                 assert True, "Could not interpolate"
         return self

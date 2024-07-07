@@ -550,3 +550,43 @@ def calc_errors_covariances(meas_traj, estimation_results):
     errors = RunErrors(meas_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)
     return errors, covariances
+
+def plot_pinpoint_trajectories(true_traj, map_data):
+    """
+    Plots the true trajectory, measured trajectory, and pinpoint results in both 2D and 3D.
+
+    :param true_traj: True trajectory data containing the real positions of the vehicle.
+    :param map_data: The map data containing the grid and axis information.
+    """
+    idx = 50
+    fig = plt.figure(figsize=(16, 8))
+
+    # 2D Plot as the first subplot
+    ax1 = fig.add_subplot(121)
+    X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+    ax1.contourf(X, Y, map_data.grid, cmap='bone', alpha=0.5)
+
+    # Plot true trajectory
+    ax1.plot(true_traj.pos.lon, true_traj.pos.lat, 'k--', label='True Trajectory')
+
+    # Plot measured trajectory
+    measured_lon = true_traj.pos.lon[::idx]
+    measured_lat = true_traj.pos.lat[::idx]
+    ax1.scatter(measured_lon, measured_lat, color='red', marker='x', label='Measured Trajectory')
+
+    # Plot pinpoint results
+    pinpoint_lon = true_traj.pinpoint.lon[::idx]
+    pinpoint_lat = true_traj.pinpoint.lat[::idx]
+    ax1.scatter(pinpoint_lon, pinpoint_lat, color='blue', marker='o', label='Pinpoint Results')
+
+    ax1.set_xlabel('Longitude [deg]')
+    ax1.set_ylabel('Latitude [deg]')
+    ax1.set_title('PinPoint results in 2D')
+    ax1.legend()
+
+    ax1.set_xlim([min(pinpoint_lon) - 0.05, max(pinpoint_lon) + 0.05])
+    ax1.set_ylim([min(pinpoint_lat) - 0.05, max(pinpoint_lat) + 0.05])
+
+    plt.tight_layout()
+    plt.savefig('pinpoint_1.jpg')
+    plt.show()

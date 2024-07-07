@@ -14,6 +14,8 @@ if __name__ == '__main__':
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
+    plot_pinpoint_trajectories(true_traj, map_data)
+
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).add_noise(errors.imu, dist=args.noise_type, approach='bottom-up')

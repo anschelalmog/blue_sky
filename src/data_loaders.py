@@ -126,12 +126,12 @@ class Map:
     mock : bool: Flag to indicate if mock data should be used.
     """
     def __init__(self):
-        self.meta = None
-        self.axis = None
-        self.bounds = None
-        self.mpd = None
+        self.meta: dict = None
+        self.axis: dict = None
+        self.bounds: dict = None
+        self.mpd: dict = None
         self.grid = None
-        self.mock = False
+        self.mock: bool = False
 
     def __str__(self):
         if self.meta is None:
@@ -158,7 +158,7 @@ class Map:
                 raise AttributeError(f"Missing required attribute '{attr}' in 'args'.")
 
         tile_length, map_level, ext = (1200, 1, 'dt1') if args.map_res == 3 else (3600, 3, 'dt2')
-        ext = 'mat'
+        ext = 'mat'  # for run examples purpose
         self.meta = {
             'maps_dir': args.maps_dir,
             'map_res': args.map_res,
@@ -193,6 +193,11 @@ class Map:
         self.axis['east'] = self.axis['lon'] * self.mpd['east']
 
     def _set_map_boundaries(self, args):
+        """
+        give a max estimation based on the vehicle velocity's what's the boundaries of the map would be
+        :param args
+        :return:  updates self. bounds based on the given arguments
+        """
         mpd_N, mpd_E = get_mpd(args.init_lat)
         # X = X_0 + V_0 * t + 1/2 V*t^2
         pos_final_lat = (args.init_lat + (((args.avg_spd * sind(args.psi)) * args.time_end) +

@@ -191,3 +191,22 @@ class TestMap:
                 # If no update is expected, the bounds should remain unchanged
                 assert map_instance.bounds == {'lat': [37, 40],
                                                'lon': [20, 23]}, "Map boundaries should not be updated."
+
+    def test_update_map_invalid_inputs(self, map_instance):
+        with pytest.raises(ValueError):
+            map_instance.update_map('invalid_lat', 23.5)
+        with pytest.raises(ValueError):
+            map_instance.update_map(31.5, 'invalid_lon')
+
+    @pytest.mark.parametrize("mode", ['2D', '3D', 'invalid'])
+    def test_visualize_map(self, map_instance, mode):
+        map_instance.grid = np.random.rand(10, 10) * 100
+        map_instance.axis = {'north': np.linspace(0, 100, 10), 'east': np.linspace(0, 100, 10)}
+        map_instance.meta = {'out_folder': './out'}
+
+        with patch("matplotlib.pyplot.show"), patch("matplotlib.pyplot.savefig"):
+            if mode == 'invalid':
+                map_instance.visualize_map(mode)
+                assert map_instance.visualize_map(mode) is None
+            else:
+                map_instance.visualize_map(mode, save=True)

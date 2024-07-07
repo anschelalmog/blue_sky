@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import RegularGridInterpolator
-from src.utils import cosd, sind, get_mpd
+from src.utils import cosd, sind, get_mpd, DCM
 from src.base_traj import BaseTraj
 from src.pinpoint_calc import PinPoint
 from src.decorators import handle_interpolation_error
@@ -18,6 +18,9 @@ class CreateTraj(BaseTraj):
                       'acc_down': args.acc_down, 'psi': args.psi, 'theta': args.theta, 'phi': args.phi,
                       'psi_dot': args.psi_dot, 'theta_dot': args.theta_dot, 'phi_dot': args.phi_dot}
         self.pinpoint = None
+        self.meas_pos_lat = np.zeros(self.run_points)
+        self.meas_pos_lon = np.zeros(self.run_points)
+        self.meas_h_agl = np.zeros(self.run_points)
 
     def _create_euler(self):
         """
@@ -27,7 +30,7 @@ class CreateTraj(BaseTraj):
         """
         self.euler.psi = self.inits['psi'] + self.inits['psi_dot'] * self.time_vec
         self.euler.theta = self.inits['theta'] + self.inits['theta_dot'] * self.time_vec
-        self.euler.phi = self.inits['phi'] + self.inits['psi_dot'] * self.time_vec
+        self.euler.phi = self.inits['phi'] + self.inits['phi_dot'] * self.time_vec
 
     def _create_acc(self):
         """
@@ -82,6 +85,23 @@ class CreateTraj(BaseTraj):
         self.pos.lat = self.pos.north / self.mpd_north
         self.pos.lon = self.pos.east / self.mpd_east
 
+    def _apply_dcm(self):
+        """
+        Apply the Direction Cosine Matrix (DCM) to the position offset of the IMU sensor at each time step.
+        """
+        transformed_offsets = np.zeros((self.run_points, 3))
+
+        for i in range(self.run_points):
+            dcm = DCM(yaw=self.euler.psi[i], pitch=self.euler.theta[i], roll=self.euler.phi[i])
+            imu_offset = np.array([0, 0, 5000])
+            # imu_offset = np.array([0, 0, -self.inits['height']])
+            transformed_offset = dcm.matrix @ imu_offset
+            transformed_offsets[i, :] = transformed_offset
+
+            self.pos.lat[i] += transformed_offset[0] / self.mpd_north[i]
+            self.pos.lon[i] += transformed_offset[1] / self.mpd_east[i]
+            self.pos.h_asl[i] += transformed_offset[2]
+
     @handle_interpolation_error
     def _create_traj(self, map_data):
         """
@@ -98,6 +118,7 @@ class CreateTraj(BaseTraj):
         self._create_acc()
         self._create_vel()
         self._create_pos()
+        self._apply_dcm()
         self._create_traj(map_data)
         self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
         self.pos.h_agl = self.pos.h_asl - self.pinpoint.h_map
