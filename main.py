@@ -12,14 +12,14 @@ if __name__ == '__main__':
     # Load the map data using the provided settings
     map_data = Map().load(args)
 
-    args.phi_dot = 15
-    args.psi_dot = 0.2
+    args.phi_dot = 0
+    args.psi_dot = 0
+    args.acc_east = 3
+    args.phi = 1
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
     plot_pinpoint_trajectories(true_traj, map_data)
 
-
-    plot_trajectory_details(true_traj, map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).add_noise(errors.imu_errors, dist=args.noise_type, approach='bottom-up')

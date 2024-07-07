@@ -40,9 +40,17 @@ class CreateTraj(BaseTraj):
                       'acc_down': args.acc_down, 'psi': args.psi, 'theta': args.theta, 'phi': args.phi,
                       'psi_dot': args.psi_dot, 'theta_dot': args.theta_dot, 'phi_dot': args.phi_dot}
         self.pinpoint = None
-        self.meas_pos_lat = np.zeros(self.run_points)
-        self.meas_pos_lon = np.zeros(self.run_points)
-        self.meas_h_agl = np.zeros(self.run_points)
+
+    def create(self, map_data):
+        self._create_euler()
+        self._create_acc()
+        self._create_vel()
+        self._create_pos()
+        self._apply_dcm(map_data)
+        self._create_traj(map_data)
+        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
+        self.pos.h_agl = self.pos.h_asl - self.pinpoint.h_map
+        return self
 
     def _create_euler(self):
         """
@@ -106,22 +114,39 @@ class CreateTraj(BaseTraj):
         self.pos.lat = self.pos.north / self.mpd_north
         self.pos.lon = self.pos.east / self.mpd_east
 
-    def _apply_dcm(self):
+    def _apply_dcm(self, map_data):
         """
         Apply the Direction Cosine Matrix (DCM) to the position offset of the IMU sensor at each time step.
         """
         transformed_offsets = np.zeros((self.run_points, 3))
 
         for i in range(self.run_points):
+            # Update IMU offset with the current height above sea level
+            imu_offset = np.array([0, 0, -self.pos.h_asl[i]])
+
             dcm = DCM(yaw=self.euler.psi[i], pitch=self.euler.theta[i], roll=self.euler.phi[i])
-            imu_offset = np.array([0, 0, 5000])
-            # imu_offset = np.array([0, 0, -self.inits['height']])
+
+            # Apply the DCM transformation to the IMU offset
             transformed_offset = dcm.matrix @ imu_offset
             transformed_offsets[i, :] = transformed_offset
 
+            # Update latitude and longitude based on transformed offsets
             self.pos.lat[i] += transformed_offset[0] / self.mpd_north[i]
             self.pos.lon[i] += transformed_offset[1] / self.mpd_east[i]
-            self.pos.h_asl[i] += transformed_offset[2]
+
+        # Update measured height map based on the new lat and lon
+        self._update_measured_height_map()
+
+        return transformed_offsets
+
+    def _update_measured_height_map(self, map_data):
+        """
+        Interpolates the map data at the new trajectory points to calculate the corresponding heights.
+        """
+        interpolator = RegularGridInterpolator((map_data.axis['lat'], map_data.axis['lon']),
+                                               map_data.grid)
+        points = np.vstack((self.pos.lat, self.pos.lon)).T
+        self.pos.h_map = interpolator(points)
 
     @handle_interpolation_error
     def _create_traj(self, map_data):
@@ -133,17 +158,6 @@ class CreateTraj(BaseTraj):
         interpolator = RegularGridInterpolator((map_data.axis['lat'], map_data.axis['lon']), map_data.grid)
         points = np.vstack((self.pos.lat, self.pos.lon)).T
         self.pos.h_map = interpolator(points)
-
-    def create(self, map_data):
-        self._create_euler()
-        self._create_acc()
-        self._create_vel()
-        self._create_pos()
-        self._apply_dcm()
-        self._create_traj(map_data)
-        self.pinpoint = PinPoint(self.run_points).calc(self, map_data)
-        self.pos.h_agl = self.pos.h_asl - self.pinpoint.h_map
-        return self
 
     def plot_vel(self):
         """
