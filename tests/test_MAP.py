@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import tempfile
 from unittest.mock import patch, MagicMock, ANY
 from src.data_loaders import Map
 
@@ -81,9 +82,12 @@ class TestMap:
         map_instance.axis = {'some': 'axis'}
         map_instance.bounds = {'lat': [33, 34], 'lon': [45, 46]}
         map_instance.mpd = {'north': 1, 'east': 1}
-        with patch('scipy.io.savemat') as mock_savemat:
-            map_instance.save('path/to/save.mat')
-            mock_savemat.assert_called_once_with('path/to/save.mat', ANY)
+
+        with tempfile.NamedTemporaryFile(suffix='.mat') as temp_file:
+            file_path = temp_file.name
+            with patch('scipy.io.savemat') as mock_savemat:
+                map_instance.save(file_path)
+                mock_savemat.assert_called_once_with(file_path, ANY)
 
     @pytest.mark.parametrize("lat, lon, avg_spd, psi, theta, time_end, expected_lat, expected_lon", [
         (31.5, 23.5, 250, 0, 0, 100, [31, 32], [23, 24]),
