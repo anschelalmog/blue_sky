@@ -59,7 +59,7 @@ class PinPoint:
             dH_tag = dR * cosd(theta) * cosd(phi)
             interpolated_height = interp1d(dH_star - dH_tag, dR)
 
-            print(f"i: {i}, dH_star: {dH_star[i]}, dH_tag: {dH_tag[i]}")
+            # print(f"i: {i}, dH_star: {dH_star[i]}, dH_tag: {dH_tag[i]}")
             try:
                 self.range[i] = interpolated_height(0).item()  # Range to pinpoint
             except ValueError as e:

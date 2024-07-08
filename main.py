@@ -4,7 +4,6 @@ from src.noise_traj import *
 from src.estimators import *
 from src.output_utils import *
 
-
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     errors = IMUErrors(args.imu_errors)
@@ -12,14 +11,12 @@ if __name__ == '__main__':
     # Load the map data using the provided settings
     map_data = Map().load(args)
 
-    args.phi_dot = 0
-    args.psi_dot = 0
+    args.psi_dot = 0.1
+    args.phi_dot = 0.3
     args.acc_east = 3
     args.phi = 1
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
-    plot_pinpoint_trajectories(true_traj, map_data)
-
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).add_noise(errors.imu_errors, dist=args.noise_type, approach='bottom-up')

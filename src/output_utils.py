@@ -551,18 +551,16 @@ def calc_errors_covariances(meas_traj, estimation_results):
     covariances = Covariances(estimation_results.params.P_est)
     return errors, covariances
 
-def plot_pinpoint_trajectories(true_traj, map_data):
+def plot_pinpoint_trajectories_2d(true_traj, map_data):
     """
-    Plots the true trajectory, measured trajectory, and pinpoint results in both 2D and 3D.
+    Plots the true trajectory, measured trajectory, and pinpoint results in 2D.
 
     :param true_traj: True trajectory data containing the real positions of the vehicle.
     :param map_data: The map data containing the grid and axis information.
     """
     idx = 50
-    fig = plt.figure(figsize=(16, 8))
-
-    # 2D Plot as the first subplot
-    ax1 = fig.add_subplot(121)
+    fig2d = plt.figure(figsize=(8, 8))
+    ax1 = fig2d.add_subplot(111)
     X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
     ax1.contourf(X, Y, map_data.grid, cmap='bone', alpha=0.5)
 
@@ -572,12 +570,12 @@ def plot_pinpoint_trajectories(true_traj, map_data):
     # Plot measured trajectory
     measured_lon = true_traj.pos.lon[::idx]
     measured_lat = true_traj.pos.lat[::idx]
-    ax1.scatter(measured_lon, measured_lat, color='red', marker='x', label='Measured Trajectory')
+    ax1.scatter(measured_lon, measured_lat, color='blue', marker='o', label='Pinpoint Results')
 
     # Plot pinpoint results
     pinpoint_lon = true_traj.pinpoint.lon[::idx]
     pinpoint_lat = true_traj.pinpoint.lat[::idx]
-    ax1.scatter(pinpoint_lon, pinpoint_lat, color='blue', marker='o', label='Pinpoint Results')
+    ax1.scatter(pinpoint_lon, pinpoint_lat, color='red', marker='x', label='Measured Trajectory')
 
     ax1.set_xlabel('Longitude [deg]')
     ax1.set_ylabel('Latitude [deg]')
@@ -588,5 +586,69 @@ def plot_pinpoint_trajectories(true_traj, map_data):
     ax1.set_ylim([min(pinpoint_lat) - 0.05, max(pinpoint_lat) + 0.05])
 
     plt.tight_layout()
-    plt.savefig('pinpoint_1.jpg')
+    plt.savefig('pinpoint_2d.jpg')
+    plt.show()
+
+def plot_pinpoint_trajectories_3d(true_traj, map_data, pov, zoom):
+    """
+    Plots the true trajectory, measured trajectory, and pinpoint results in 3D.
+
+    :param true_traj: True trajectory data containing the real positions of the vehicle.
+    :param map_data: The map data containing the grid and axis information.
+    :param pov: Point of view for the 3D plot. Should be a tuple (elev, azim).
+    :param zoom: Zoom level for the 3D plot. Should be a float greater than 0 (e.g., 1.5 for 150% zoom).
+    """
+    idx = 50
+    fig3d = plt.figure(figsize=(8, 8))
+    ax2 = fig3d.add_subplot(111, projection='3d')
+    X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+
+
+    # Plot true trajectory
+    ax2.plot(true_traj.pos.lon, true_traj.pos.lat, true_traj.pos.h_asl, 'k--', label='True Trajectory')
+
+    # Plot measured trajectory
+    measured_lon = true_traj.pos.lon[::idx]
+    measured_lat = true_traj.pos.lat[::idx]
+    ground_elevations_measured = [
+        map_data.grid[np.abs(map_data.axis['lat'] - lat).argmin(), np.abs(map_data.axis['lon'] - lon).argmin()]
+        for lat, lon in zip(measured_lat, measured_lon)
+    ]
+    ax2.scatter(measured_lon, measured_lat, ground_elevations_measured, color='blue', marker='o', label='Pinpoint Results')
+
+    # Plot pinpoint results
+    pinpoint_lon = true_traj.pinpoint.lon[::idx]
+    pinpoint_lat = true_traj.pinpoint.lat[::idx]
+    ground_elevations_pinpoint = [
+        map_data.grid[np.abs(map_data.axis['lat'] - lat).argmin(), np.abs(map_data.axis['lon'] - lon).argmin()]
+        for lat, lon in zip(pinpoint_lat, pinpoint_lon)
+    ]
+    ax2.scatter(pinpoint_lon, pinpoint_lat, ground_elevations_pinpoint, color='red', marker='x', label='Measured Trajectory')
+
+    # ax2.plot_surface(X, Y, map_data.grid, cmap='bone', alpha=0.3)
+
+    ax2.set_xlabel('Longitude [deg]')
+    ax2.set_ylabel('Latitude [deg]')
+    ax2.set_zlabel('Altitude [m]')
+    ax2.set_title('PinPoint results in 3D')
+    ax2.legend()
+
+    # Set the POV if specified
+    ax2.view_init(elev=pov[0], azim=pov[1])
+
+    # Set the zoom if specified
+    x_mid = (ax2.get_xlim()[0] + ax2.get_xlim()[1]) / 2
+    y_mid = (ax2.get_ylim()[0] + ax2.get_ylim()[1]) / 2
+    z_mid = (ax2.get_zlim()[0] + ax2.get_zlim()[1]) / 2
+
+    x_range = (ax2.get_xlim()[1] - ax2.get_xlim()[0]) / zoom
+    y_range = (ax2.get_ylim()[1] - ax2.get_ylim()[0]) / zoom
+    z_range = (ax2.get_zlim()[1] - ax2.get_zlim()[0]) / zoom
+
+    ax2.set_xlim([x_mid - x_range / 2, x_mid + x_range / 2])
+    ax2.set_ylim([y_mid - y_range / 2, y_mid + y_range / 2])
+    ax2.set_zlim([z_mid - z_range / 2, z_mid + z_range / 2])
+
+    plt.tight_layout()
+    plt.savefig('pinpoint_3d.jpg')
     plt.show()

@@ -135,7 +135,7 @@ class CreateTraj(BaseTraj):
             self.pos.lon[i] += transformed_offset[1] / self.mpd_east[i]
 
         # Update measured height map based on the new lat and lon
-        self._update_measured_height_map()
+        self._update_measured_height_map(map_data)
 
         return transformed_offsets
 
