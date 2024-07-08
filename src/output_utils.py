@@ -589,7 +589,7 @@ def plot_pinpoint_trajectories_2d(true_traj, map_data):
     plt.savefig('pinpoint_2d.jpg')
     plt.show()
 
-def plot_pinpoint_trajectories_3d(true_traj, map_data, pov, zoom):
+def plot_pinpoint_trajectories_3d(true_traj, map_data, pov=(50, 200), zoom=2.3):
     """
     Plots the true trajectory, measured trajectory, and pinpoint results in 3D.
 

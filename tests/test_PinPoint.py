@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from src.pinpoint_calc import PinPoint
 from src.create_traj import CreateTraj
 from src.data_loaders import Map
-from src.outputs_utils import plot_sampled_trajectory
 
 
 class TestPinPoint:
