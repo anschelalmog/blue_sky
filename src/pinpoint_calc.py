@@ -1,8 +1,7 @@
 import numpy as np
-from tqdm import tqdm
 from scipy.interpolate import interp1d, RegularGridInterpolator
 from src.utils import sind, cosd, DCM, progress_bar
-from icecream import ic
+from src.decorators import handle_interpolation_error
 
 def jac_north(psi, theta, phi):
     return cosd(psi) * sind(theta) * cosd(phi) + sind(psi) * sind(phi)
@@ -21,6 +20,7 @@ class PinPoint:
         self.lon = np.zeros(length)
         self.h_map = np.zeros(length)
 
+    @handle_interpolation_error
     def calc(self, traj, map_data):
         """
         Calculating the true range from the vehicle to the pinpoint
