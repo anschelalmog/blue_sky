@@ -7,6 +7,7 @@ from src.output_utils import *
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     errors = IMUErrors(args.imu_errors)
+    errors.set_imu_error('altimeter', amplitude=20)
 
     # Load the map data using the provided settings
     map_data = Map().load(args)

@@ -505,10 +505,10 @@ def compare_trajectories(true_traj, meas_traj):
     print("=" * 40)
 
 
-def plot_height_profiles(create_traj, noise_traj):
+def plot_height_profiles(true_traj, noise_traj):
     plt.figure(figsize=(10, 5))
     plt.title('Height Profile Comparison')
-    plt.plot(create_traj.time_vec, create_traj.pos.h_agl, 'g-', label='True Height')
+    plt.plot(true_traj.time_vec, true_traj.pos.h_agl, 'g-', label='True Height')
     plt.plot(noise_traj.time_vec, noise_traj.pos.h_agl, 'm--', label='Noisy Height')
     plt.xlabel('Time [s]')
     plt.ylabel('Height [m]')

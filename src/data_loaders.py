@@ -423,19 +423,56 @@ class Map:
 #
 
 class IMUErrors:
+    """
+    A class to manage and store error parameters for various IMU sensors.
+
+    Attributes:
+    imu_errors (dict): A dictionary to store the error parameters for IMU sensors.
+    """
+
     def __init__(self, imu_errors=None, set_defaults=True):
+        """
+        Initializes the IMUErrors class.
+
+        Parameters:
+        imu_errors (dict, optional): A dictionary to initialize IMU errors. Defaults to None.
+        set_defaults (bool, optional): If True, sets default errors for predefined IMU sensors. Defaults to True.
+        """
         self.imu_errors = {} if imu_errors is None else imu_errors
         if set_defaults:
             self.create_defaults_errors()
             self.print_table()
 
-    def set_imu_error(self, imu_name, amplitude, drift, bias):
+    def set_imu_error(self, imu_name: str, amplitude: float = 0, drift: float = 0, bias: float = 0):
+        """
+        Sets the error parameters for a given IMU sensor.
+
+        Parameters:
+        imu_name (str): The name of the IMU sensor. Allowed values are:
+                        'altimeter', 'barometer', 'gyroscope', 'accelerometer',
+                        'velocity meter', 'position'.
+        amplitude (float, optional): The amplitude error. Default is 0.
+        drift (float, optional): The drift error. Default is 0.
+        bias (float, optional): The bias error. Default is 0.
+        """
         self.imu_errors[imu_name] = {'amplitude': amplitude, 'drift': drift, 'bias': bias}
 
     def get_imu_error(self, imu_name):
+        """
+        Retrieves the error parameters for a given IMU sensor.
+
+        Parameters:
+        imu_name (str): The name of the IMU sensor.
+
+        Returns:
+        dict: A dictionary containing the error parameters ('amplitude', 'drift', 'bias') for the IMU sensor.
+        """
         return self.imu_errors.get(imu_name, {'amplitude': 0, 'drift': 0, 'bias': 0})
 
     def create_defaults_errors(self):
+        """
+        Creates and sets default error parameters for predefined IMU sensors.
+        """
         self.set_imu_error('altimeter', amplitude=0, drift=0, bias=0)
         self.set_imu_error('barometer', amplitude=0, drift=0, bias=0)
         self.set_imu_error('gyroscope', amplitude=0, drift=0, bias=0)
@@ -444,12 +481,14 @@ class IMUErrors:
         self.set_imu_error('position', amplitude=0, drift=0, bias=0)
 
     def print_table(self):
+        """
+        Prints a table of the IMU error parameters.
+        """
         print("=" * 65)
         print("IMU Errors".center(65))
         print("=" * 65)
-        print("| {:^20} | {:^10} | {:^10} | {:^10} |".format("IMU Name", "amplitude", "Drift", "Bias"))
+        print("| {:^20} | {:^10} | {:^10} | {:^10} |".format("IMU Name", "Amplitude", "Drift", "Bias"))
         print("-" * 65)
         for imu_name, error in self.imu_errors.items():
-            print("| {:^20} | {:^10} | {:^10} | {:^10} |".format(imu_name, error['amplitude'], error['drift'],
-                                                                 error['bias']))
+            print("| {:^20} | {:^10} | {:^10} | {:^10} |".format(imu_name, error['amplitude'], error['drift'], error['bias']))
         print("-" * 65)
