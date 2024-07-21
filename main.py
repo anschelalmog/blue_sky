@@ -7,7 +7,8 @@ from src.output_utils import *
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     errors = IMUErrors(args.imu_errors)
-    errors.set_imu_error('altimeter', amplitude=20)
+    # errors.set_imu_error('altimeter', amplitude=20)
+    # errors.set_imu_error('position', amplitude=200, drift=20, bias=50)
 
     # Load the map data using the provided settings
     map_data = Map().load(args)
@@ -17,8 +18,6 @@ if __name__ == '__main__':
 
     # Generate a noisy trajectory to simulate the sensor measurements
     meas_traj = NoiseTraj(true_traj).add_noise(errors.imu_errors)
-    plot_height_profiles(true_traj, meas_traj)
-    plot_trajectory_comparison(true_traj, meas_traj, map_data)
 
     # Perform trajectory estimation based on the selected Kalman filter type
     if args.kf_type == 'IEKF':

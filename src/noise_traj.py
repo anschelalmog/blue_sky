@@ -14,6 +14,7 @@ class NoiseTraj(BaseTraj):
         self.mpd_east = true_traj.mpd_east
         self.approach: str = None
         self.dist: str = None
+        self.true_traj = true_traj
 
         # Copy attributes of pos, vel, and euler
         for attr in ['pos', 'vel', 'euler', 'acc']:
@@ -124,18 +125,20 @@ class NoiseTraj(BaseTraj):
         h_asl_noise = self.__generate_noise(baro_error['amplitude'], (self.run_points,))
         h_agl_noise = self.__generate_noise(alt_error['amplitude'], (self.run_points,))
 
+        methoed = self.approach
+        self.approach = 'top-down'
         if self.approach == 'bottom-up':
             self.pos.north = self.pos.north[0] + init_pos_error_north + self.vel.north * self.time_vec
             self.pos.east = self.pos.east[0] + init_pos_error_east + self.vel.east * self.time_vec
-            self.pos.h_asl = self.pos.h_asl[0] + h_asl_noise + self.vel.down * self.time_vec
+            self.pos.h_asl = self.true_traj.pos.h_asl + h_asl_noise + self.vel.down * self.time_vec
             self.pos.h_agl = self.pos.h_agl[0] + h_agl_noise + self.vel.down * self.time_vec
-
         else:  # "top-down"
             self.pos.north += north_noise
             self.pos.north += east_noise
             self.pos.h_asl += h_asl_noise
-            self.pos.h_agl += h_agl_noise
+            self.pos.h_map += h_agl_noise
 
+        self.approach = methoed
         self.pos.lat = self.pos.north / self.mpd_north
         self.pos.lon = self.pos.east / self.mpd_east
         self.pos.h_map = self.pos.h_asl - self.pos.h_agl

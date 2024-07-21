@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import datetime
-
 from src.base_traj import BaseTraj
-
+from src.noise_traj import NoiseTraj
+import numpy.random as rnd
 
 # noinspection DuplicatedCode
 
@@ -506,50 +506,77 @@ def compare_trajectories(true_traj, meas_traj):
 
 
 def plot_height_profiles(true_traj, noise_traj):
-    plt.figure(figsize=(10, 5))
-    plt.title('Height Profile Comparison')
-    plt.plot(true_traj.time_vec, true_traj.pos.h_agl, 'g-', label='True Height')
-    plt.plot(noise_traj.time_vec, noise_traj.pos.h_agl, 'm--', label='Noisy Height')
+    plt.figure(figsize=(12, 10))
+    plt.title('Map Height Comparison')
+    # plt.plot(true_traj.time_vec, true_traj.pos.h_map, 'b-', label='Noisy Heights')
+    plt.scatter(true_traj.time_vec[::5], true_traj.pos.h_map[::5], c='r', s=30, alpha=0.8, label='Noisy Heights')
+    plt.plot(noise_traj.time_vec, noise_traj.pos.h_map, 'k-', label='True Heights')
     plt.xlabel('Time [s]')
     plt.ylabel('Height [m]')
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
+    plt.savefig('map_height_noise_comparison.jpg')
     plt.show()
 
 
-def plot_trajectory_comparison(create_traj, noise_traj, map_data):
-    fig = plt.figure(figsize=(14, 7))
+def plot_trajectory_comparison(true_traj, map_data, amp, drift, bias):
+    fig, ax = plt.subplots(figsize=(12, 10))
 
-    # 2D Plot
-    ax1 = fig.add_subplot(121)
-    ax1.title.set_text('2D Trajectory Comparison')
-    X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
-    ax1.contourf(X, Y, map_data.grid, cmap='terrain', alpha=0.7)
-    ax1.plot(create_traj.pos.lon, create_traj.pos.lat, 'r-', label='True Trajectory')
-    ax1.plot(noise_traj.pos.lon, noise_traj.pos.lat, 'b--', label='Noisy Trajectory')
-    ax1.set_xlabel('Longitude')
-    ax1.set_ylabel('Latitude')
-    ax1.legend()
+    vec_shape = true_traj.pos.north.shape
+    amp = 100
+    drift = 0.5
+    bias = 250
 
-    # 3D Plot
-    ax2 = fig.add_subplot(122, projection='3d')
-    ax2.title.set_text('3D Trajectory Comparison')
-    surf = ax2.plot_surface(X, Y, map_data.grid.T, cmap='terrain', alpha=0.5)
-    ax2.plot(create_traj.pos.lon, create_traj.pos.lat, create_traj.pos.h_asl, 'r-', label='True Trajectory')
-    ax2.plot(noise_traj.pos.lon, noise_traj.pos.lat, noise_traj.pos.h_asl, 'b--', label='Noisy Trajectory')
-    ax2.set_xlabel('Longitude')
-    ax2.set_ylabel('Latitude')
-    ax2.set_zlabel('Altitude')
-    ax2.legend()
+    # Generate noise for top-down approach (only amplitude noise)
+    top_down_north = true_traj.pos.north + amp * rnd.randn(*vec_shape)
+    top_down_east = true_traj.pos.east + amp * rnd.randn(*vec_shape)
+
+    # Generate noise for bottom-up approach (bias, drift, and amplitude noise)
+    bottom_up_north = true_traj.pos.north + bias * np.ones(vec_shape)
+    bottom_up_east = true_traj.pos.east + bias * np.zeros(vec_shape)
+
+    bottom_up_north += np.cumsum(drift * np.ones(vec_shape), axis=0)
+    bottom_up_east += np.cumsum(drift * rnd.randn(*vec_shape), axis=0)
+
+    bottom_up_north += amp * rnd.randn(*vec_shape)
+    bottom_up_east += amp * rnd.randn(*vec_shape)
+
+    # Plot setup
+    lat_grid, lon_grid = np.meshgrid(map_data.axis['lat'], map_data.axis['lon'], indexing='ij')
+    north_grid = lat_grid * map_data.mpd['north']
+    east_grid = lon_grid * map_data.mpd['east']
+
+    # Plot setup
+    ax.set_title('Trajectory Comparison: Top-Down vs Bottom-Up')
+    ax.contourf(east_grid, north_grid, map_data.grid, cmap='bone', alpha=0.6)
+    ax.plot(top_down_east, top_down_north, 'b', linestyle=':', linewidth=2, label='Top-Down Trajectory')
+    ax.plot(bottom_up_east, bottom_up_north, 'r', linestyle='-.', linewidth=2, label='Bottom-Up Trajectory')
+    ax.plot(true_traj.pos.east, true_traj.pos.north, 'w', linestyle='-', linewidth=2, label='True Trajectory')
+    ax.set_xlabel('Longitude')
+    ax.set_ylabel('Latitude')
+    ax.legend()
+
+    # Calculate limits with margin
+    min_east = np.min(np.vstack((true_traj.pos.east, top_down_east, bottom_up_east)))
+    max_east = np.max(np.vstack((true_traj.pos.east, top_down_east, bottom_up_east)))
+    min_north = np.min(np.vstack((true_traj.pos.north, top_down_north, bottom_up_north)))
+    max_north = np.max(np.vstack((true_traj.pos.north, top_down_north, bottom_up_north)))
+
+    east_margin = 0.05 * (max_east - min_east)
+    north_margin = 0.05 * (max_north - min_north)
+
+    ax.set_xlim([min_east - east_margin, max_east + east_margin])
+    ax.set_ylim([min_north - north_margin, max_north + north_margin])
 
     plt.tight_layout()
+    plt.savefig('Trajectory Comparison.jpg')
     plt.show()
-
-
 def calc_errors_covariances(meas_traj, estimation_results):
     errors = RunErrors(meas_traj, estimation_results.traj)
     covariances = Covariances(estimation_results.params.P_est)
     return errors, covariances
+
 
 def plot_pinpoint_trajectories_2d(true_traj, map_data):
     """
@@ -589,6 +616,7 @@ def plot_pinpoint_trajectories_2d(true_traj, map_data):
     plt.savefig('pinpoint_2d.jpg')
     plt.show()
 
+
 def plot_pinpoint_trajectories_3d(true_traj, map_data, pov=(50, 200), zoom=2.3):
     """
     Plots the true trajectory, measured trajectory, and pinpoint results in 3D.
@@ -603,7 +631,6 @@ def plot_pinpoint_trajectories_3d(true_traj, map_data, pov=(50, 200), zoom=2.3):
     ax2 = fig3d.add_subplot(111, projection='3d')
     X, Y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
 
-
     # Plot true trajectory
     ax2.plot(true_traj.pos.lon, true_traj.pos.lat, true_traj.pos.h_asl, 'k--', label='True Trajectory')
 
@@ -614,7 +641,8 @@ def plot_pinpoint_trajectories_3d(true_traj, map_data, pov=(50, 200), zoom=2.3):
         map_data.grid[np.abs(map_data.axis['lat'] - lat).argmin(), np.abs(map_data.axis['lon'] - lon).argmin()]
         for lat, lon in zip(measured_lat, measured_lon)
     ]
-    ax2.scatter(measured_lon, measured_lat, ground_elevations_measured, color='blue', marker='o', label='Pinpoint Results')
+    ax2.scatter(measured_lon, measured_lat, ground_elevations_measured, color='blue', marker='o',
+                label='Pinpoint Results')
 
     # Plot pinpoint results
     pinpoint_lon = true_traj.pinpoint.lon[::idx]
@@ -623,7 +651,8 @@ def plot_pinpoint_trajectories_3d(true_traj, map_data, pov=(50, 200), zoom=2.3):
         map_data.grid[np.abs(map_data.axis['lat'] - lat).argmin(), np.abs(map_data.axis['lon'] - lon).argmin()]
         for lat, lon in zip(pinpoint_lat, pinpoint_lon)
     ]
-    ax2.scatter(pinpoint_lon, pinpoint_lat, ground_elevations_pinpoint, color='red', marker='x', label='Measured Trajectory')
+    ax2.scatter(pinpoint_lon, pinpoint_lat, ground_elevations_pinpoint, color='red', marker='x',
+                label='Measured Trajectory')
 
     # ax2.plot_surface(X, Y, map_data.grid, cmap='bone', alpha=0.3)
 
