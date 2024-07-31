@@ -78,8 +78,8 @@ class IEKF:
             self.curr_state = i
 
             "-Prediction step"
-            self._predict_state(meas)
-            p_pre = self._predict_covariance()
+            self._predict_state(meas)  # Formula (2.1)
+            p_pre = self._predict_covariance()  # Formula (2.2)
 
             # inner_loop = 'estimation iterations'
             # for iter in tqdm(range(self.max_iter), desc = inner_loop):
@@ -87,7 +87,7 @@ class IEKF:
                 "-Measurement update"
                 # H_x = self._compute_measurement
                 lat, lon = self._pinpoint_coordinates(meas)
-                self._find_slopes(lat, lon, p_pre, map_data)  # updates SN, SE, Rfit
+                self._find_slopes(lat, lon, p_pre, map_data)  # updates SN, SE, Rfit #
                 h_asl_meas = self.traj.pos.h_asl[i]  # meas.pos.h_asl[i]
                 jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
                 h_agl_meas = meas.pinpoint.range[i] * jac
@@ -118,7 +118,8 @@ class IEKF:
         Set initial values from measurements
 
         """
-
+        self.traj.pos.east[0] = meas.pos.east[0]
+        self.traj.pos.north[0] = meas.pos.north[0]
         self.traj.pos.lat[0] = meas.pos.lat[0]
         self.traj.pos.lon[0] = meas.pos.lon[0]
         self.traj.pos.h_asl[0] = meas.pos.h_asl[0]  # altitude
@@ -232,7 +233,10 @@ class IEKF:
         lat = self.traj.pos.lat[i] + self.traj.pinpoint.delta_north[i] / meas.mpd_north[i]
         lon = self.traj.pos.lon[i] + self.traj.pinpoint.delta_east[i] / meas.mpd_east[i]
 
+        lat, lon = meas.pos.lat[i], meas.pos.lat[i]
+
         return lat, lon
+
 
     def _find_slopes(self, lat, lon, p_pre, map_data):
         """
@@ -287,9 +291,22 @@ class IEKF:
         self.params.Rfit[i] = In / (MP - 1)
 
     def _calc_rc(self, h_agl_meas):
-        self.params.Rc[self.curr_state] = 100 + 125 * (h_agl_meas > 200) + 175 * (h_agl_meas > 760) + 600 * (
-                h_agl_meas > 1000) + 500 * (
-                                                  h_agl_meas > 5000) + 1500 * (h_agl_meas > 7000)
+        if h_agl_meas <= 200:
+            self.params.Rc[self.curr_state] = 100
+        elif h_agl_meas <= 760:
+            self.params.Rc[self.curr_state] = 225  # 100 + 125
+        elif h_agl_meas <= 1000:
+            self.params.Rc[self.curr_state] = 400  # 225 + 175
+        elif h_agl_meas <= 5000:
+            self.params.Rc[self.curr_state] = 1000  # 400 + 600
+        elif h_agl_meas <= 7000:
+            self.params.Rc[self.curr_state] = 1500  # 1000 + 500
+        else:
+            self.params.Rc[self.curr_state] = 3000  # 1500 + 1500
+
+        # Increase Rc towards the end to account for increasing measurement uncertainty
+        if self.curr_state > self.run_points * 0.8:
+            self.params.Rc[self.curr_state] *= 1.5
 
     def _compute_gain(self, P):
         i = self.curr_state
@@ -304,10 +321,16 @@ class IEKF:
         H = np.transpose(self.params.H[:, i].reshape(-1, 1))
         R = np.array([[self.params.R[i]]])
         I_mat = np.eye(self.state_size)
+
         # Joseph Formula
         self.params.P_est[:, :, i] = (I_mat - K @ H) @ P @ (I_mat - K @ H).T + K @ R @ K.T
+
         # Optimal
         #  self.params.P_est[:, :, i] = (I- K @ H) @ P
+
+        # Regularization
+        epsilon = 1e-6  # Small positive number
+        self.params.P_est[:, :, i] += epsilon * np.eye(self.state_size)
 
     def _update_estimate_state(self, meas):
         # Update estimated state
@@ -423,11 +446,11 @@ class UKF:
         X_sigma_pred = np.zeros_like(X_sigma)
         for j in range(2 * self.state_size + 1):
             X_sigma_pred[0, j] = X_sigma[0, j] + (
-                        X_sigma[3, j] * self.del_t + 0.5 * meas.acc.north[i - 1] * self.del_t ** 2) / meas.mpd_north[i]
+                    X_sigma[3, j] * self.del_t + 0.5 * meas.acc.north[i - 1] * self.del_t ** 2) / meas.mpd_north[i]
             X_sigma_pred[1, j] = X_sigma[1, j] + (
-                        X_sigma[4, j] * self.del_t + 0.5 * meas.acc.east[i - 1] * self.del_t ** 2) / meas.mpd_east[i]
+                    X_sigma[4, j] * self.del_t + 0.5 * meas.acc.east[i - 1] * self.del_t ** 2) / meas.mpd_east[i]
             X_sigma_pred[2, j] = X_sigma[2, j] + (
-                        X_sigma[5, j] * self.del_t + 0.5 * meas.acc.down[i - 1] * self.del_t ** 2)
+                    X_sigma[5, j] * self.del_t + 0.5 * meas.acc.down[i - 1] * self.del_t ** 2)
             X_sigma_pred[3, j] = X_sigma[3, j] + meas.acc.north[i - 1] * self.del_t
             X_sigma_pred[4, j] = X_sigma[4, j] + meas.acc.east[i - 1] * self.del_t
             X_sigma_pred[5, j] = X_sigma[5, j] + meas.acc.down[i - 1] * self.del_t
@@ -657,6 +680,7 @@ class UKF:
 
         return lat, lon
 
+
 class UKFParams:
     def __init__(self, ukf):
         self.state_size = ukf.state_size
@@ -690,6 +714,8 @@ class UKFParams:
         weights = np.full(2 * self.state_size + 1, 1 / (2 * (self.state_size + self.lambda_)))
         weights[0] = self.lambda_ / (self.state_size + self.lambda_) + (1 - self.alpha ** 2 + self.beta)
         return weights
+
+
 """
 def _update_estimate_state(self, meas):
     # Update estimated state
@@ -722,3 +748,7 @@ def _update_estimate_state(self, meas):
     self.traj.pos.east[i] = self.traj.pos.lon[i] * meas.mpd_east[i]  # Convert longitude to east position
 
 """
+
+
+class baseKF:
+    pass

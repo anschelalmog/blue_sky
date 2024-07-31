@@ -6,14 +6,15 @@ from src.base_traj import BaseTraj
 from src.noise_traj import NoiseTraj
 import numpy.random as rnd
 
+
 # noinspection DuplicatedCode
 
 
 class RunErrors(BaseTraj):
-    def __init__(self, used_traj, est_traj):
+    def __init__(self, used_traj, est_traj, covars):
         super().__init__(used_traj.run_points)
         self.pos.north = used_traj.pos.north - est_traj.pos.lat * used_traj.mpd_north
-        self.pos.east = used_traj.pos.east - est_traj.pos.lon * used_traj.mpd_east
+        self.pos.east = (used_traj.pos.lon - est_traj.pos.lon)  # used_traj.mpd_east
         self.pos.h_asl = used_traj.pos.h_asl - est_traj.pos.h_asl
         #
         self.vel.north = used_traj.vel.north - est_traj.vel.north
@@ -23,10 +24,65 @@ class RunErrors(BaseTraj):
         self.euler.psi = used_traj.euler.psi - est_traj.euler.psi
         self.euler.theta = used_traj.euler.theta - est_traj.euler.theta
         self.euler.phi = used_traj.euler.phi - est_traj.euler.phi
+        #
+
+        self.metrics = {
+            'pos': {
+                'north': {
+                    'rmse': np.sqrt(np.mean(self.pos.north ** 2)),
+                    'max_abs_error': np.max(np.abs(self.pos.north)),
+                    'error_bound_percentage': np.mean(np.abs(self.pos.north) <= np.abs(covars.pos.north)) * 100
+                },
+                'east': {
+                    'rmse': np.sqrt(np.mean(self.pos.east ** 2)),
+                    'max_abs_error': np.max(np.abs(self.pos.east)),
+                    'error_bound_percentage': np.mean(np.abs(self.pos.east) <= np.abs(covars.pos.east)) * 100
+                },
+                'h_asl': {
+                    'rmse': np.sqrt(np.mean(self.pos.h_asl ** 2)),
+                    'max_abs_error': np.max(np.abs(self.pos.h_asl)),
+                    'error_bound_percentage': np.mean(np.abs(self.pos.h_asl) <= np.abs(covars.pos.h_asl)) * 100
+                }
+            },
+            'vel': {
+                'north': {
+                    'rmse': np.sqrt(np.mean(self.vel.north ** 2)),
+                    'max_abs_error': np.max(np.abs(self.vel.north)),
+                    'error_bound_percentage': np.mean(np.abs(self.vel.north) <= np.abs(covars.vel.north)) * 100
+                },
+                'east': {
+                    'rmse': np.sqrt(np.mean(self.vel.east ** 2)),
+                    'max_abs_error': np.max(np.abs(self.vel.east)),
+                    'error_bound_percentage': np.mean(np.abs(self.vel.east) <= np.abs(covars.vel.east)) * 100
+                },
+                'down': {
+                    'rmse': np.sqrt(np.mean(self.vel.down ** 2)),
+                    'max_abs_error': np.max(np.abs(self.vel.down)),
+                    'error_bound_percentage': np.mean(np.abs(self.vel.down) <= np.abs(covars.vel.down)) * 100
+                }
+            },
+            'euler': {
+                'psi': {
+                    'rmse': np.sqrt(np.mean(self.euler.psi ** 2)),
+                    'max_abs_error': np.max(np.abs(self.euler.psi)),
+                    'error_bound_percentage': np.mean(np.abs(self.euler.psi) <= np.abs(covars.euler.psi)) * 100
+                },
+                'theta': {
+                    'rmse': np.sqrt(np.mean(self.euler.theta ** 2)),
+                    'max_abs_error': np.max(np.abs(self.euler.theta)),
+                    'error_bound_percentage': np.mean(np.abs(self.euler.theta) <= np.abs(covars.euler.theta)) * 100
+                },
+                'phi': {
+                    'rmse': np.sqrt(np.mean(self.euler.phi ** 2)),
+                    'max_abs_error': np.max(np.abs(self.euler.phi)),
+                    'error_bound_percentage': np.mean(np.abs(self.euler.phi) <= np.abs(covars.euler.phi)) * 100
+                }
+            }
+        }
 
 
 class Covariances(BaseTraj):
-    def __init__(self, covariances):
+    def __init__(self, covariances, traj):
         super().__init__(covariances.shape[2])
         #
         self.pos.north = np.sqrt(covariances[0, 0, :])
@@ -45,61 +101,6 @@ class Covariances(BaseTraj):
         self.euler.theta = np.sqrt(covariances[10, 10, :])
         self.euler.phi = np.sqrt(covariances[11, 11, :])
 
-        self.metrics = {
-            'pos': {
-                'north': {
-                    'rmse': np.sqrt(np.mean(self.pos.north ** 2)),
-                    'max_abs_error': np.max(np.abs(self.pos.north)),
-                    'error_bound_percentage': np.mean(np.abs(self.pos.north) <= 1) * 100
-                },
-                'east': {
-                    'rmse': np.sqrt(np.mean(self.pos.east ** 2)),
-                    'max_abs_error': np.max(np.abs(self.pos.east)),
-                    'error_bound_percentage': np.mean(np.abs(self.pos.east) <= 1) * 100
-                },
-                'h_asl': {
-                    'rmse': np.sqrt(np.mean(self.pos.h_asl ** 2)),
-                    'max_abs_error': np.max(np.abs(self.pos.h_asl)),
-                    'error_bound_percentage': np.mean(np.abs(self.pos.h_asl) <= 1) * 100
-                }
-            },
-            'vel': {
-                'north': {
-                    'rmse': np.sqrt(np.mean(self.vel.north ** 2)),
-                    'max_abs_error': np.max(np.abs(self.vel.north)),
-                    'error_bound_percentage': np.mean(np.abs(self.vel.north) <= 0.1) * 100
-                },
-                'east': {
-                    'rmse': np.sqrt(np.mean(self.vel.east ** 2)),
-                    'max_abs_error': np.max(np.abs(self.vel.east)),
-                    'error_bound_percentage': np.mean(np.abs(self.vel.east) <= 0.1) * 100
-                },
-                'down': {
-                    'rmse': np.sqrt(np.mean(self.vel.down ** 2)),
-                    'max_abs_error': np.max(np.abs(self.vel.down)),
-                    'error_bound_percentage': np.mean(np.abs(self.vel.down) <= 0.1) * 100
-                }
-            },
-            'euler': {
-                'psi': {
-                    'rmse': np.sqrt(np.mean(self.euler.psi ** 2)),
-                    'max_abs_error': np.max(np.abs(self.euler.psi)),
-                    'error_bound_percentage': np.mean(np.abs(self.euler.psi) <= 1) * 100
-                },
-                'theta': {
-                    'rmse': np.sqrt(np.mean(self.euler.theta ** 2)),
-                    'max_abs_error': np.max(np.abs(self.euler.theta)),
-                    'error_bound_percentage': np.mean(np.abs(self.euler.theta) <= 1) * 100
-                },
-                'phi': {
-                    'rmse': np.sqrt(np.mean(self.euler.phi ** 2)),
-                    'max_abs_error': np.max(np.abs(self.euler.phi)),
-                    'error_bound_percentage': np.mean(np.abs(self.euler.phi) <= 1) * 100
-                }
-            }
-        }
-
-        # Mapping of attribute names to their corresponding indices in the covariance matrix
         attr_indices = {
             'pos': {'north': 0, 'east': 1, 'h_asl': 2},
             'vel': {'north': 3, 'east': 4, 'down': 5},
@@ -117,7 +118,7 @@ class Covariances(BaseTraj):
 def plot_results(args, map_data, ground_truth, measurements, estimation_results, errors, covars):
     os.makedirs('out', exist_ok=True)
     repr(args.plots)
-
+    x = 1000
     if args.plots['plot map']:
         title = 'Results on Map'
         fig = plt.figure(title, figsize=(10, 12))
@@ -169,36 +170,36 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         fig.suptitle(title, fontsize=24, fontweight='bold')
 
         # Error in North position
-        axs[0].plot(args.time_vec, errors.pos.north, '-r', linewidth=1)
-        axs[0].plot(args.time_vec, covars.pos.north, '--b', linewidth=1)
-        axs[0].plot(args.time_vec, -covars.pos.north, '--b', linewidth=1)
+        axs[0].plot(args.time_vec[:x], errors.pos.north[:x], '-r', linewidth=1)
+        axs[0].plot(args.time_vec[:x], covars.pos.north[:x], '--b', linewidth=1)
+        axs[0].plot(args.time_vec[:x], -covars.pos.north[:x], '--b', linewidth=1)
         axs[0].set_title('North Position Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
         axs[0].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Add error metrics as text on the North Position subplot
-        rmse_north = covars.metrics['pos']['north']['rmse']
-        max_abs_error_north = covars.metrics['pos']['north']['max_abs_error']
-        error_bound_percentage_north = covars.metrics['pos']['north']['error_bound_percentage']
+        rmse_north = errors.metrics['pos']['north']['rmse']
+        max_abs_error_north = errors.metrics['pos']['north']['max_abs_error']
+        error_bound_percentage_north = errors.metrics['pos']['north']['error_bound_percentage']
         axs[0].text(0.05, 0.95,
                     f"RMSE: {rmse_north:.4f}\nMax Abs Error: {max_abs_error_north:.4f}\nError Bound Percentage: {error_bound_percentage_north:.2f}%",
                     transform=axs[0].transAxes, verticalalignment='top', fontsize=10,
                     bbox=dict(facecolor='white', alpha=0.8))
 
         # Error in East Position
-        axs[1].plot(args.time_vec, errors.pos.east, '-r', linewidth=1)
-        axs[1].plot(args.time_vec, covars.pos.east, '--b', linewidth=1)
-        axs[1].plot(args.time_vec, -covars.pos.east, '--b', linewidth=1)
+        axs[1].plot(args.time_vec[:x], errors.pos.east[:x], '-r', linewidth=1)
+        axs[1].plot(args.time_vec[:x], covars.pos.east[:x], '--b', linewidth=1)
+        axs[1].plot(args.time_vec[:x], -covars.pos.east[:x], '--b', linewidth=1)
         axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Add error metrics as text on the East Position subplot
-        rmse_east = covars.metrics['pos']['east']['rmse']
-        max_abs_error_east = covars.metrics['pos']['east']['max_abs_error']
-        error_bound_percentage_east = covars.metrics['pos']['east']['error_bound_percentage']
+        rmse_east = errors.metrics['pos']['east']['rmse']
+        max_abs_error_east = errors.metrics['pos']['east']['max_abs_error']
+        error_bound_percentage_east = errors.metrics['pos']['east']['error_bound_percentage']
         axs[1].text(0.05, 0.95,
                     f"RMSE: {rmse_east:.4f}\nMax Abs Error: {max_abs_error_east:.4f}\nError Bound Percentage: {error_bound_percentage_east:.2f}%",
                     transform=axs[1].transAxes, verticalalignment='top', fontsize=10,
@@ -227,7 +228,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].plot(args.time_vec, errors.vel.east, '-r', linewidth=1)
         axs[1].plot(args.time_vec, covars.vel.east, '--b', linewidth=1)
         axs[1].plot(args.time_vec, -covars.vel.east, '--b', linewidth=1)
-        axs[1].set_title('East Position Error [m]')
+        axs[1].set_title('East Velocity Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
@@ -236,7 +237,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[2].plot(args.time_vec, errors.vel.down, '-r', linewidth=1)
         axs[2].plot(args.time_vec, covars.vel.down, '--b', linewidth=1)
         axs[2].plot(args.time_vec, -covars.vel.down, '--b', linewidth=1)
-        axs[2].set_title('East Position Error [m]')
+        axs[2].set_title('East Velocity Error [m]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
         axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
@@ -262,9 +263,9 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.plot(args.time_vec, estimation_results.params.Z, '-.g')
 
         # Add error metrics as text on the Altitude Errors plot
-        rmse_alt = covars.metrics['pos']['h_asl']['rmse']
-        max_abs_error_alt = covars.metrics['pos']['h_asl']['max_abs_error']
-        error_bound_percentage_alt = covars.metrics['pos']['h_asl']['error_bound_percentage']
+        rmse_alt = errors.metrics['pos']['h_asl']['rmse']
+        max_abs_error_alt = errors.metrics['pos']['h_asl']['max_abs_error']
+        error_bound_percentage_alt = errors.metrics['pos']['h_asl']['error_bound_percentage']
         plt.text(0.05, 0.95,
                  f"RMSE: {rmse_alt:.4f}\nMax Abs Error: {max_abs_error_alt:.4f}\nError Bound Percentage: {error_bound_percentage_alt:.2f}%",
                  transform=plt.gca().transAxes, verticalalignment='top', fontsize=10,
@@ -297,9 +298,9 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Add error metrics as text on the Euler Psi subplot
-        rmse_psi = covars.metrics['euler']['psi']['rmse']
-        max_abs_error_psi = covars.metrics['euler']['psi']['max_abs_error']
-        error_bound_percentage_psi = covars.metrics['euler']['psi']['error_bound_percentage']
+        rmse_psi = errors.metrics['euler']['psi']['rmse']
+        max_abs_error_psi = errors.metrics['euler']['psi']['max_abs_error']
+        error_bound_percentage_psi = errors.metrics['euler']['psi']['error_bound_percentage']
         axs[0].text(0.05, 0.95,
                     f"RMSE: {rmse_psi:.4f}\nMax Abs Error: {max_abs_error_psi:.4f}\nError Bound Percentage: {error_bound_percentage_psi:.2f}%",
                     transform=axs[0].transAxes, verticalalignment='top', fontsize=10,
@@ -315,9 +316,9 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Add error metrics as text on the Euler Theta subplot
-        rmse_theta = covars.metrics['euler']['theta']['rmse']
-        max_abs_error_theta = covars.metrics['euler']['theta']['max_abs_error']
-        error_bound_percentage_theta = covars.metrics['euler']['theta']['error_bound_percentage']
+        rmse_theta = errors.metrics['euler']['theta']['rmse']
+        max_abs_error_theta = errors.metrics['euler']['theta']['max_abs_error']
+        error_bound_percentage_theta = errors.metrics['euler']['theta']['error_bound_percentage']
         axs[1].text(0.05, 0.95,
                     f"RMSE: {rmse_theta:.4f}\nMax Abs Error: {max_abs_error_theta:.4f}\nError Bound Percentage: {error_bound_percentage_theta:.2f}%",
                     transform=axs[1].transAxes, verticalalignment='top', fontsize=10,
@@ -333,9 +334,9 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
         # Add error metrics as text on the Euler Phi subplot
-        rmse_phi = covars.metrics['euler']['phi']['rmse']
-        max_abs_error_phi = covars.metrics['euler']['phi']['max_abs_error']
-        error_bound_percentage_phi = covars.metrics['euler']['phi']['error_bound_percentage']
+        rmse_phi = errors.metrics['euler']['phi']['rmse']
+        max_abs_error_phi = errors.metrics['euler']['phi']['max_abs_error']
+        error_bound_percentage_phi = errors.metrics['euler']['phi']['error_bound_percentage']
         axs[2].text(0.05, 0.95,
                     f"RMSE: {rmse_phi:.4f}\nMax Abs Error: {max_abs_error_phi:.4f}\nError Bound Percentage: {error_bound_percentage_phi:.2f}%",
                     transform=axs[2].transAxes, verticalalignment='top', fontsize=10,
@@ -360,7 +361,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].set_ylim(-1, 1.1)
+        #axs[0].set_ylim(-1, 1.1)
         axs[0].legend(['Error', 'Mismatch'], loc='best')
 
         axs[1].set_title('Process Noise, R and Rc')
@@ -572,9 +573,11 @@ def plot_trajectory_comparison(true_traj, map_data, amp, drift, bias):
     plt.tight_layout()
     plt.savefig('Trajectory Comparison.jpg')
     plt.show()
+
+
 def calc_errors_covariances(meas_traj, estimation_results):
-    errors = RunErrors(meas_traj, estimation_results.traj)
-    covariances = Covariances(estimation_results.params.P_est)
+    covariances = Covariances(estimation_results.params.P_est, estimation_results.traj)
+    errors = RunErrors(meas_traj, estimation_results.traj, covariances)
     return errors, covariances
 
 

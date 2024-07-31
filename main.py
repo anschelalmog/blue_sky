@@ -7,11 +7,11 @@ from src.output_utils import *
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     errors = IMUErrors(args.imu_errors)
-    # errors.set_imu_error('altimeter', amplitude=20)
-    # errors.set_imu_error('position', amplitude=200, drift=20, bias=50)
+    #errors.set_imu_error('altimeter', amplitude=20)
+    # errors.set_imu_error('barometer', amplitude=200, drift=0, bias=0)
 
     # Load the map data using the provided settings
-    map_data = Map().load(args)
+    map_data = Map().load(args, mock=True)
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
@@ -28,12 +28,13 @@ if __name__ == '__main__':
         estimation_results = UKF(args).run(map_data, meas_traj)
 
     # Calculate errors and covariances between the used trajectory and the estimated trajectory
-    errors, covariances = calc_errors_covariances(true_traj or meas_traj, estimation_results)
+    run_errors, covariances = calc_errors_covariances(true_traj or meas_traj, estimation_results)
 
     args.plots = {
         'plot map': True,
         'position errors': True,
         'velocity errors': True,
+
         'attitude errors': True,
         'altitude errors': True,
         'model errors': True,
@@ -41,7 +42,7 @@ if __name__ == '__main__':
         'map elevation': True,
     }
     # Plot the results based on the plotting options
-    plot_results(args, map_data, true_traj, meas_traj, estimation_results, errors, covariances)
+    plot_results(args, map_data, true_traj, meas_traj, estimation_results, run_errors, covariances)
 
     # Print log information including settings, estimation results, errors, and covariances
-    print_log(args, estimation_results, errors, covariances)
+    # print_log(args, estimation_results, run_errors, covariances)
