@@ -13,6 +13,7 @@ if __name__ == '__main__':
     # errors.set_imu_error('gyroscope', amplitude=0.1)
 
     # Load the map data using the provided settings
+    # Create the map class with the elevation data
     map_data = Map().load(args)
 
     # Create the actual trajectory based on the map data and settings
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     if args.kf_type == 'IEKF':
         # runs Iterated Extended Kalman Filter
         estimation_results = IEKF(args).run(map_data, meas_traj)
+
     else:  # args.kf_type == 'UKF':
         # runs Unscented Kalman Filter
         estimation_results = UKF(args).run(map_data, meas_traj)
@@ -32,18 +34,17 @@ if __name__ == '__main__':
     # Calculate errors and covariances between the used trajectory and the estimated trajectory
     run_errors, covariances = calc_errors_covariances(true_traj or meas_traj, estimation_results)
 
+    # Plot the results based on the plotting options
     args.plots = {
         'plot map': True,
         'position errors': True,
         'velocity errors': True,
-
         'attitude errors': True,
         'altitude errors': True,
         'model errors': True,
         'kalman gains': True,
         'map elevation': True,
     }
-    # Plot the results based on the plotting options
     plot_results(args, map_data, true_traj, meas_traj, estimation_results, run_errors, covariances)
 
     # Print log information including settings, estimation results, errors, and covariances
