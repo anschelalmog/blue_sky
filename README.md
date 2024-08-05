@@ -2,7 +2,7 @@
 <h1 align="center">Blue Sky: IMU-Based Navigation System</h1>
 
 Note: This project is not completed yet.
-Status: May 2024
+Status: Aug 2024
 
 ## Background
 
