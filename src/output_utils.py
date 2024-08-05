@@ -176,7 +176,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_title('North Position Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[0].legend(['Error', r'$\pm\sigma$'], loc='lower left')
 
         # Add error metrics as text on the North Position subplot
         rmse_north = errors.metrics['pos']['north']['rmse']
@@ -194,7 +194,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[1].legend(['Err', r'$\pm\sigma$'], loc='lower left')
 
         # Add error metrics as text on the East Position subplot
         rmse_east = errors.metrics['pos']['east']['rmse']
@@ -295,7 +295,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_title(r'Euler $\psi$ - yaw Error [deg]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[0].legend(['Error', r'$\pm\sigma$'], loc='lower left')
 
         # Add error metrics as text on the Euler Psi subplot
         rmse_psi = errors.metrics['euler']['psi']['rmse']

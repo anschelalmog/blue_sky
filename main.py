@@ -7,17 +7,19 @@ from src.output_utils import *
 if __name__ == '__main__':
     args = set_settings()  # Set the system settings
     errors = IMUErrors(args.imu_errors)
-    #errors.set_imu_error('altimeter', amplitude=20)
-    # errors.set_imu_error('barometer', amplitude=200, drift=0, bias=0)
+    # errors.set_imu_error('altimeter', amplitude=5)
+    # errors.set_imu_error('barometer', amplitude=50)
+    # errors.set_imu_error('velocity meter', amplitude=3)
+    # errors.set_imu_error('gyroscope', amplitude=0.1)
 
     # Load the map data using the provided settings
-    map_data = Map().load(args, mock=True)
+    map_data = Map().load(args)
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
 
     # Generate a noisy trajectory to simulate the sensor measurements
-    meas_traj = NoiseTraj(true_traj).add_noise(errors.imu_errors)
+    meas_traj = NoiseTraj(true_traj).add_noise(errors.imu_errors, approach='top-down')
 
     # Perform trajectory estimation based on the selected Kalman filter type
     if args.kf_type == 'IEKF':
