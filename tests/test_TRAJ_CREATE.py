@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import Mock
+import unittest
 import numpy as np
 from icecream import ic
 from scipy.interpolate import RegularGridInterpolator
@@ -9,7 +10,7 @@ from src.utils import get_mpd
 from src.data_loaders import set_settings
 
 
-class TestCreateTraj:
+class TestCreateTraj(unittest.TestCase):
     """
     Test suite for the CreateTraj class.
 

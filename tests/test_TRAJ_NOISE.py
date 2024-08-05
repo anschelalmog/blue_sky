@@ -3,9 +3,9 @@ import numpy as np
 from unittest.mock import Mock
 from src.noise_traj import NoiseTraj
 from src.create_traj import CreateTraj
+import unittest
 
-
-class TestNoiseTraj:
+class TestNoiseTraj(unittest.TestCase):
     @pytest.fixture
     def mock_true_traj(self):
         true_traj = Mock(spec=CreateTraj)

@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import unittest
 from unittest.mock import MagicMock, patch
 from argparse import Namespace
 
@@ -9,7 +10,7 @@ from src.noise_traj import *
 from src.output_utils import *
 from src.estimators import IEKF, IEKFParams
 
-class TestIEKF:
+class TestIEKF(unittest.TestCase):
     @pytest.fixture
     def default_args(self):
         return Namespace(

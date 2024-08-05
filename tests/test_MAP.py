@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import tempfile
+import unittest
 from unittest.mock import patch, MagicMock, ANY
 from src.data_loaders import Map
 
@@ -16,7 +17,7 @@ from src.data_loaders import Map
 """
 
 
-class TestMap:
+class TestMap(unittest.TestCase):
     """
     Test suite for the Map class.
 

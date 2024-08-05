@@ -1,4 +1,5 @@
 import pytest
+import unittest
 import numpy as np
 import matplotlib.pyplot as plt
 from src.pinpoint_calc import PinPoint
@@ -7,7 +8,7 @@ from src.data_loaders import Map
 from src.utils import cosd, sind
 
 
-class TestPinPoint:
+class TestPinPoint(unittest.TestCase):
     @pytest.fixture
     def mock_args(self):
         class Args:
