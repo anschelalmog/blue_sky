@@ -117,8 +117,22 @@ class Covariances(BaseTraj):
 
 def plot_results(args, map_data, ground_truth, measurements, estimation_results, errors, covars):
     os.makedirs('out', exist_ok=True)
-    repr(args.plots)
     x = 1000
+
+    def save_and_show(fig, title):
+        plt.tight_layout()
+        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
+        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
+        plt.show()
+    def add_error_metrics(ax, component, error_type):
+        rmse = errors.metrics[error_type][component]['rmse']
+        max_abs_error = errors.metrics[error_type][component]['max_abs_error']
+        error_bound_percentage = errors.metrics[error_type][component]['error_bound_percentage']
+        ax.text(0.05, 0.95,
+                f"RMSE: {rmse:.4f}\nMax Abs Error: {max_abs_error:.4f}\nError Bound Percentage: {error_bound_percentage:.2f}%",
+                transform=ax.transAxes, verticalalignment='top', fontsize=10,
+                bbox=dict(facecolor='white', alpha=0.8))
+
     if args.plots['plot map']:
         title = 'Results on Map'
         fig = plt.figure(title, figsize=(10, 12))
@@ -131,225 +145,89 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         ax.set_ylabel('East [m]')
         ax.set_zlabel('Height [m]')
 
-        # # Ground Truth
-        # if ground_truth is not None:
-        #     ax.plot3D(ground_truth.pos.north, ground_truth.pos.east, ground_truth.pos.h_asl, linewidth=4, color='r',
-        #               label='Ground Truth')
-        #     # ax.plot3D(ground_truth.pos.lon, ground_truth.pos.lat, ground_truth.pos.h_asl, linewidth=4, color='r',
-        #     #           label='Ground Truth')
-
-        # Measured
         idx = 10  # every 10th element
         ax.scatter3D(measurements.pos.north[::idx], measurements.pos.east[::idx], measurements.pos.h_asl[::idx],
                      marker='x', color='black', label='Measured')
-        # ax.scatter3D(measurements.pos.lon[::idx], measurements.pos.lat[::idx], measurements.pos.h_asl[::idx],
-        #              marker='x', color='black', label='Measured')
 
-        # # Estimated
-        # ax.plot3D(estimation_results.traj.pos.north, estimation_results.traj.pos.east,
-        #           estimation_results.traj.pos.h_asl,
-        #           linewidth=4, color='b', label='Estimated')
-        # # ax.plot3D(estimation_results.traj.pos.lon, estimation_results.traj.pos.lat, estimation_results.traj.pos.h_asl,
-        # #           linewidth=4, color='b', label='Estimated')
-
-        # Legend
         lgd = ax.legend(loc='best')
         lgd.set_title('PATHS')
         lgd.get_frame().set_linewidth(1.0)
-        plt.tight_layout()
-
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # show fig
-        plt.show()
+        save_and_show(fig, title)
     if args.plots['position errors']:
         title = 'Position Errors'
         fig, axs = plt.subplots(2, 1, figsize=(10, 12))
         fig.suptitle(title, fontsize=24, fontweight='bold')
 
-        # Error in North position
-        axs[0].plot(args.time_vec[:x], errors.pos.north[:x], '-r', linewidth=1)
-        axs[0].plot(args.time_vec[:x], covars.pos.north[:x], '--b', linewidth=1)
-        axs[0].plot(args.time_vec[:x], -covars.pos.north[:x], '--b', linewidth=1)
-        axs[0].set_title('North Position Error [m]')
-        axs[0].set_xlabel('Time [sec]')
-        axs[0].grid(True)
-        axs[0].legend(['Error', r'$\pm\sigma$'], loc='lower left')
+        components = ['north', 'east']
+        for i, component in enumerate(components):
+            axs[i].plot(args.time_vec[:x], getattr(errors.pos, component)[:x], '-r', linewidth=1)
+            axs[i].plot(args.time_vec[:x], getattr(covars.pos, component)[:x], '--b', linewidth=1)
+            axs[i].plot(args.time_vec[:x], -getattr(covars.pos, component)[:x], '--b', linewidth=1)
+            axs[i].set_title(f'{component.capitalize()} Position Error [m]')
+            axs[i].set_xlabel('Time [sec]')
+            axs[i].grid(True)
+            axs[i].legend(['Error', r'$\pm\sigma$'], loc='lower left')
+            add_error_metrics(axs[i], component, 'pos')
 
-        # Add error metrics as text on the North Position subplot
-        rmse_north = errors.metrics['pos']['north']['rmse']
-        max_abs_error_north = errors.metrics['pos']['north']['max_abs_error']
-        error_bound_percentage_north = errors.metrics['pos']['north']['error_bound_percentage']
-        axs[0].text(0.05, 0.95,
-                    f"RMSE: {rmse_north:.4f}\nMax Abs Error: {max_abs_error_north:.4f}\nError Bound Percentage: {error_bound_percentage_north:.2f}%",
-                    transform=axs[0].transAxes, verticalalignment='top', fontsize=10,
-                    bbox=dict(facecolor='white', alpha=0.8))
-
-        # Error in East Position
-        axs[1].plot(args.time_vec[:x], errors.pos.east[:x], '-r', linewidth=1)
-        axs[1].plot(args.time_vec[:x], covars.pos.east[:x], '--b', linewidth=1)
-        axs[1].plot(args.time_vec[:x], -covars.pos.east[:x], '--b', linewidth=1)
-        axs[1].set_title('East Position Error [m]')
-        axs[1].set_xlabel('Time [sec]')
-        axs[1].grid(True)
-        axs[1].legend(['Err', r'$\pm\sigma$'], loc='lower left')
-
-        # Add error metrics as text on the East Position subplot
-        rmse_east = errors.metrics['pos']['east']['rmse']
-        max_abs_error_east = errors.metrics['pos']['east']['max_abs_error']
-        error_bound_percentage_east = errors.metrics['pos']['east']['error_bound_percentage']
-        axs[1].text(0.05, 0.95,
-                    f"RMSE: {rmse_east:.4f}\nMax Abs Error: {max_abs_error_east:.4f}\nError Bound Percentage: {error_bound_percentage_east:.2f}%",
-                    transform=axs[1].transAxes, verticalalignment='top', fontsize=10,
-                    bbox=dict(facecolor='white', alpha=0.8))
-
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # plot show
-        plt.show()
+        save_and_show(fig, title)
     if args.plots['velocity errors']:
         title = 'Velocity Errors'
-        fig, axs = plt.subplots(3, 1, figsize=(10, 12))
+        fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
         fig.suptitle(title, fontsize=24, fontweight='bold')
-        # Error in North Velocity
-        axs[0].plot(args.time_vec, errors.vel.north, '-r', linewidth=1)
-        axs[0].plot(args.time_vec, covars.vel.north, '--b', linewidth=1)
-        axs[0].plot(args.time_vec, -covars.vel.north, '--b', linewidth=1)
-        axs[0].set_title('North Velocity Error [m]')
-        axs[0].set_xlabel('Time [sec]')
-        axs[0].grid(True)
-        axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
 
-        # Error in East Velocity
-        axs[1].plot(args.time_vec, errors.vel.east, '-r', linewidth=1)
-        axs[1].plot(args.time_vec, covars.vel.east, '--b', linewidth=1)
-        axs[1].plot(args.time_vec, -covars.vel.east, '--b', linewidth=1)
-        axs[1].set_title('East Velocity Error [m]')
-        axs[1].set_xlabel('Time [sec]')
-        axs[1].grid(True)
-        axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        components = ['north', 'east', 'down']
+        titles = ['North Velocity Error [m]', 'East Velocity Error [m]', 'Down Velocity Error [m]']
 
-        # Error in Down Velocity
-        axs[2].plot(args.time_vec, errors.vel.down, '-r', linewidth=1)
-        axs[2].plot(args.time_vec, covars.vel.down, '--b', linewidth=1)
-        axs[2].plot(args.time_vec, -covars.vel.down, '--b', linewidth=1)
-        axs[2].set_title('East Velocity Error [m]')
-        axs[2].set_xlabel('Time [sec]')
-        axs[2].grid(True)
-        axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        for i, (component, title) in enumerate(zip(components, titles)):
+            axs[i].plot(args.time_vec, getattr(errors.vel, component), '-r', linewidth=1)
+            axs[i].plot(args.time_vec, getattr(covars.vel, component), '--b', linewidth=1)
+            axs[i].plot(args.time_vec, -getattr(covars.vel, component), '--b', linewidth=1)
+            axs[i].set_title(title)
+            axs[i].set_xlabel('Time [sec]')
+            axs[i].grid(True)
+            axs[i].legend(['Error', r'$\pm\sigma$'], loc='lower left')
+            add_error_metrics(axs[i], component, 'vel')
 
-        plt.tight_layout()
-
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        plt.show()
+        save_and_show(fig, title)
     if args.plots['altitude errors']:
         title = 'Altitude Errors'
-        plt.figure(title, figsize=(10, 12))
+        fig = plt.figure(title, figsize=(10, 12))
         plt.suptitle(title, fontsize=24, fontweight='bold')
 
+        mean_err_alt = np.mean(errors.pos.h_asl)
+        plt.plot(args.time_vec[::10], (mean_err_alt * np.ones(len(errors.pos.h_asl)))[::10], '*-k')
+        plt.plot(args.time_vec, estimation_results.params.Z, '-.g')
         plt.plot(args.time_vec, errors.pos.h_asl, 'r', linewidth=1)
         plt.plot(args.time_vec, covars.pos.h_asl, '--b', linewidth=1)
         plt.plot(args.time_vec, -covars.pos.h_asl, '--b', linewidth=1)
 
-        mean_err_alt = np.mean(errors.pos.h_asl)
-        plt.plot(args.time_vec, mean_err_alt * np.ones(len(errors.pos.h_asl)), '*-k')
-        plt.plot(args.time_vec, estimation_results.params.Z, '-.g')
+        add_error_metrics(plt.gca(), 'h_asl', 'pos')
 
-        # Add error metrics as text on the Altitude Errors plot
-        rmse_alt = errors.metrics['pos']['h_asl']['rmse']
-        max_abs_error_alt = errors.metrics['pos']['h_asl']['max_abs_error']
-        error_bound_percentage_alt = errors.metrics['pos']['h_asl']['error_bound_percentage']
-        plt.text(0.05, 0.95,
-                 f"RMSE: {rmse_alt:.4f}\nMax Abs Error: {max_abs_error_alt:.4f}\nError Bound Percentage: {error_bound_percentage_alt:.2f}%",
-                 transform=plt.gca().transAxes, verticalalignment='top', fontsize=10,
-                 bbox=dict(facecolor='white', alpha=0.8))
-
-        # legend
         plt.title('Altitude Err [m]')
         plt.xlabel('Time [sec]')
         plt.grid(True)
-        plt.legend(['Error', r'+$\sigma$', r'-$\sigma$', 'mean', 'Z'], loc='best')
+        plt.legend(['Z', 'mean error', 'Error', r'$\pm\sigma$'], loc='lower left')
 
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # show plot
-        plt.show()
+        save_and_show(fig, title)
     if args.plots['attitude errors']:
         title = 'Attitude Errors'
         fig, axs = plt.subplots(3, 1, figsize=(10, 12))
         fig.suptitle(title, fontsize=24, fontweight='bold')
 
-        # Error in euler psi
-        axs[0].plot(args.time_vec, errors.euler.psi, '-r', linewidth=1)
-        axs[0].plot(args.time_vec, covars.euler.psi, '--b', linewidth=1)
-        axs[0].plot(args.time_vec, -covars.euler.psi, '--b', linewidth=1)
-        axs[0].set_title(r'Euler $\psi$ - yaw Error [deg]')
-        axs[0].set_xlabel('Time [sec]')
-        axs[0].grid(True)
-        axs[0].legend(['Error', r'$\pm\sigma$'], loc='lower left')
+        components = ['psi', 'theta', 'phi']
+        titles = [r'Euler $\psi$ - yaw Error [deg]', r'Euler $\theta$ - pitch Error [deg]', r'Euler $\phi$ - roll Error [deg]']
 
-        # Add error metrics as text on the Euler Psi subplot
-        rmse_psi = errors.metrics['euler']['psi']['rmse']
-        max_abs_error_psi = errors.metrics['euler']['psi']['max_abs_error']
-        error_bound_percentage_psi = errors.metrics['euler']['psi']['error_bound_percentage']
-        axs[0].text(0.05, 0.95,
-                    f"RMSE: {rmse_psi:.4f}\nMax Abs Error: {max_abs_error_psi:.4f}\nError Bound Percentage: {error_bound_percentage_psi:.2f}%",
-                    transform=axs[0].transAxes, verticalalignment='top', fontsize=10,
-                    bbox=dict(facecolor='white', alpha=0.8))
+        for i, (component, title) in enumerate(zip(components, titles)):
+            axs[i].plot(args.time_vec, getattr(errors.euler, component), '-r', linewidth=1)
+            axs[i].plot(args.time_vec, getattr(covars.euler, component), '--b', linewidth=1)
+            axs[i].plot(args.time_vec, -getattr(covars.euler, component), '--b', linewidth=1)
+            axs[i].set_title(title)
+            axs[i].set_xlabel('Time [sec]')
+            axs[i].grid(True)
+            axs[i].legend(['Error', r'$\pm\sigma$'], loc='lower left')
+            add_error_metrics(axs[i], component, 'euler')
 
-        # Error in euler theta
-        axs[1].plot(args.time_vec, errors.euler.theta, '-r', linewidth=1)
-        axs[1].plot(args.time_vec, covars.euler.theta, '--b', linewidth=1)
-        axs[1].plot(args.time_vec, -covars.euler.theta, '--b', linewidth=1)
-        axs[1].set_title(r'Euler $\theta$ - pitch Error [deg]')
-        axs[1].set_xlabel('Time [sec]')
-        axs[1].grid(True)
-        axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
-
-        # Add error metrics as text on the Euler Theta subplot
-        rmse_theta = errors.metrics['euler']['theta']['rmse']
-        max_abs_error_theta = errors.metrics['euler']['theta']['max_abs_error']
-        error_bound_percentage_theta = errors.metrics['euler']['theta']['error_bound_percentage']
-        axs[1].text(0.05, 0.95,
-                    f"RMSE: {rmse_theta:.4f}\nMax Abs Error: {max_abs_error_theta:.4f}\nError Bound Percentage: {error_bound_percentage_theta:.2f}%",
-                    transform=axs[1].transAxes, verticalalignment='top', fontsize=10,
-                    bbox=dict(facecolor='white', alpha=0.8))
-
-        # Error in euler phi
-        axs[2].plot(args.time_vec, errors.euler.phi, '-r', linewidth=1)
-        axs[2].plot(args.time_vec, covars.euler.phi, '--b', linewidth=1)
-        axs[2].plot(args.time_vec, -covars.euler.phi, '--b', linewidth=1)
-        axs[2].set_title(r'Euler $\phi$ - roll Error [deg]')
-        axs[2].set_xlabel('Time [sec]')
-        axs[2].grid(True)
-        axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
-
-        # Add error metrics as text on the Euler Phi subplot
-        rmse_phi = errors.metrics['euler']['phi']['rmse']
-        max_abs_error_phi = errors.metrics['euler']['phi']['max_abs_error']
-        error_bound_percentage_phi = errors.metrics['euler']['phi']['error_bound_percentage']
-        axs[2].text(0.05, 0.95,
-                    f"RMSE: {rmse_phi:.4f}\nMax Abs Error: {max_abs_error_phi:.4f}\nError Bound Percentage: {error_bound_percentage_phi:.2f}%",
-                    transform=axs[2].transAxes, verticalalignment='top', fontsize=10,
-                    bbox=dict(facecolor='white', alpha=0.8))
-
-        plt.tight_layout()
-
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # plot show
-        plt.show()
+        save_and_show(fig, title='attitude errors')
     if args.plots['model errors']:
         title = 'Model Errors'
         fig, axs = plt.subplots(2, 1, figsize=(10, 12))
@@ -361,32 +239,23 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_ylabel('Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        #axs[0].set_ylim(-1, 1.1)
-        axs[0].legend(['Error', 'Mismatch'], loc='best')
+        axs[0].legend(['Error', 'Mismatch'], loc='lower left')
 
         axs[1].set_title('Process Noise, R and Rc')
         axs[1].plot(args.time_vec, estimation_results.params.Rc, '-r')
         axs[1].plot(args.time_vec, estimation_results.params.Rfit, '--b')
-        axs[0].set_ylabel('Error [m]')
-        axs[0].set_xlabel('Time [sec]')
+        axs[1].plot(args.time_vec, estimation_results.params.R, '-*k')
+        axs[1].set_ylabel('Error [m]')
+        axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
         axs[1].legend(['Rc - penalty on height', 'Rfit', 'R'], loc='best')
 
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # show plot
-        plt.show()
+        save_and_show(fig, title)
     if args.plots['kalman gains']:
         title = "Kalman Gains"
         gains = [
-            'Position North',
-            'Position East',
-            'Position Down',
-            'Velocity North',
-            'Velocity East',
-            'Velocity Down'
+            'Position North', 'Position East', 'Position Down',
+            'Velocity North', 'Velocity East', 'Velocity Down'
         ]
 
         fig, axs = plt.subplots(2, 3, figsize=(10, 12))
@@ -397,39 +266,26 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
             col = i % 3
             axs[row, col].set_ylim(-1, 1.1)
             axs[row, col].grid(True)
-            axs[row, col].plot(args.time_vec, estimation_results.params.K[i, :], linewidth=1)
+            axs[row, col].plot(args.time_vec, estimation_results.params.K[i, :], linewidth=1.2)
             axs[row, col].set_title(title)
             axs[row, col].set_xlabel('Time [sec]')
 
-        plt.tight_layout()
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # plot show
-        plt.show()
+        save_and_show(fig, title)
     if args.plots['map elevation']:
         title = 'Map Elevation'
         fig = plt.figure('Map  - Ground Elevation at PinPoint', figsize=(10, 12))
         fig.suptitle(title, fontsize=24, fontweight='bold')
-        plt.plot(args.time_vec, ground_truth.pinpoint.h_map, 'r')
+        plt.plot(args.time_vec, ground_truth.pos.h_map, 'r')
         plt.plot(args.time_vec, estimation_results.traj.pos.h_asl - estimation_results.traj.pos.h_agl, '--b')
         plt.title('Map elevation')
-        plt.title('Height [m]')
+        plt.ylabel('Height [m]')
         plt.xlabel('Time [sec]')
         plt.grid(True)
         plt.legend(['True', 'Estimated'])
 
-        plt.tight_layout()
-        # save fig
-        plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
-        plt.savefig(os.path.join(args.results_folder, f'{title}.svg'))
-
-        # show plot
-        plt.show()
+        save_and_show(fig, title)
 
     return errors, covars
-
 
 def print_log(args, estimation_results, errors, covs):
     # Create a log file in the Results folder

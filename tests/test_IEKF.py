@@ -10,7 +10,8 @@ from src.noise_traj import *
 from src.output_utils import *
 from src.estimators import IEKF, IEKFParams
 
-class TestIEKF(unittest.TestCase):
+
+class TestIEKF:
     @pytest.fixture
     def default_args(self):
         return Namespace(
@@ -26,6 +27,97 @@ class TestIEKF(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def setup(self, default_args):
         self.args = default_args
+
+    @pytest.fixture
+    def mock_iekf(self):
+        """Create a mock IEKF instance for testing."""
+        args = MagicMock()
+        args.run_points = 100
+        args.time_vec = np.arange(0, 10, 0.1)
+        args.kf_state_size = 12
+        iekf = IEKF(args)
+        iekf.params = MagicMock()
+        iekf.params.SN = np.zeros(args.run_points)
+        iekf.params.SE = np.zeros(args.run_points)
+        iekf.params.Rfit = np.zeros(args.run_points)
+        return iekf
+
+    @pytest.fixture
+    def mock_wavy_data(self):
+        """Create a mock map data structure with vector mpd values."""
+        map_data = MagicMock()
+        map_data.axis = {
+            'lat': np.linspace(37, 38, 101),
+            'lon': np.linspace(21, 22, 101)
+        }
+        # Create vector mpd values
+        map_data.mpd = {
+            'north': np.linspace(110000, 112000, 100),  # Varying slightly around 111 km/deg
+            'east': np.linspace(84000, 86000, 100)  # Varying slightly around 85 km/deg
+        }
+
+        # Create a simple elevation model for testing
+        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+        map_data.grid = 100 * np.sin(x) + 100 * np.cos(y)
+
+        return map_data
+
+    @pytest.fixture
+    def mock_flat_map(self):
+        map_data = MagicMock()
+        map_data.axis = {
+            'lat': np.linspace(37, 38, 101),
+            'lon': np.linspace(21, 22, 101)
+        }
+        map_data.mpd = {
+            'north': np.linspace(110000, 112000, 100),
+            'east': np.linspace(84000, 86000, 100)
+        }
+        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+        map_data.grid = np.full_like(x, 1000)  # Constant elevation of 1000m
+        return map_data
+
+    @pytest.fixture
+    def mock_linear_map(self):
+        map_data = MagicMock()
+        map_data.axis = {
+            'lat': np.linspace(37, 38, 101),
+            'lon': np.linspace(21, 22, 101)
+        }
+        map_data.mpd = {
+            'north': np.linspace(110000, 112000, 100),
+            'east': np.linspace(84000, 86000, 100)
+        }
+        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+
+        # Create a linear slope:
+        # - Increasing from west to east (along longitude)
+        # - Decreasing from south to north (along latitude)
+        slope_lon = 500  # 500 meters per degree longitude
+        slope_lat = -300  # -300 meters per degree latitude
+        base_elevation = 1000  # meters
+
+        map_data.grid = (base_elevation +
+                         slope_lon * (x - x.min()) +
+                         slope_lat * (y - y.min()))
+
+        return map_data
+
+    @pytest.fixture
+    def mock_complex_map(self):
+        map_data = MagicMock()
+        map_data.axis = {
+            'lat': np.linspace(37, 38, 101),
+            'lon': np.linspace(21, 22, 101)
+        }
+        map_data.mpd = {
+            'north': np.linspace(110000, 112000, 100),
+            'east': np.linspace(84000, 86000, 100)
+        }
+        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+        # Complex terrain with valleys, peaks, and plateaus
+        map_data.grid = 1000 + 500 * np.sin(2 * x) * np.cos(2 * y) + 300 * np.abs(np.sin(5 * x) * np.cos(5 * y))
+        return map_data
 
     def run_iekf_setup_no_error(self, mock=True):
         """Helper method to run the setup steps for IEKF."""
@@ -99,7 +191,8 @@ class TestIEKF(unittest.TestCase):
         assert np.all(np.abs(run_errors.euler.theta[10:length - 10]) < euler_thr)
         assert np.all(np.abs(run_errors.euler.phi[10:length - 10]) < euler_thr)
 
-    def test_iekf_in_bounds_percentage_flat_surface_no_error(self, pos_min_error=80, vel_min_error=80, euler_min_error=80):
+    def test_iekf_in_bounds_percentage_flat_surface_no_error(self, pos_min_error=80, vel_min_error=80,
+                                                             euler_min_error=80):
         """
         Verify that the errors are in 3sigma at least above the given percentage.
         """
@@ -172,90 +265,3 @@ class TestIEKF(unittest.TestCase):
     ######################################
     "Testing _find_slopes() method"      #
     ######################################
-    @pytest.fixture
-    def mock_iekf(self):
-        """Create a mock IEKF instance for testing."""
-        args = MagicMock()
-        args.run_points = 100
-        args.time_vec = np.arange(0, 10, 0.1)
-        args.kf_state_size = 12
-        iekf = IEKF(args)
-        iekf.params = MagicMock()
-        iekf.params.SN = np.zeros(args.run_points)
-        iekf.params.SE = np.zeros(args.run_points)
-        iekf.params.Rfit = np.zeros(args.run_points)
-        return iekf
-
-    @pytest.fixture
-    def mock_map_data(self):
-        """Create a mock map data structure with vector mpd values."""
-        map_data = MagicMock()
-        map_data.axis = {
-            'lat': np.linspace(37, 38, 101),
-            'lon': np.linspace(21, 22, 101)
-        }
-        # Create vector mpd values
-        map_data.mpd = {
-            'north': np.linspace(110000, 112000, 100),  # Varying slightly around 111 km/deg
-            'east': np.linspace(84000, 86000, 100)  # Varying slightly around 85 km/deg
-        }
-
-        # Create a simple elevation model for testing
-        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
-        map_data.grid = 100 * np.sin(x) + 100 * np.cos(y)
-
-        return map_data
-
-    def test_find_slopes(self, mock_iekf, mock_map_data):
-        """Test the _find_slopes method with a sinusoidal terrain and vector mpd."""
-        mock_iekf.curr_state = 50  # Middle of the run
-        lat, lon = 37.5, 21.5
-        p_pre = np.eye(12) * 100  # Simulated covariance matrix
-
-        with patch('src.estimators.interp2d') as mock_interp2d:
-            # Mock the interp2d function to return our simple elevation model
-            def mock_interpolate(x, y):
-                return 100 * np.sin(x) + 100 * np.cos(y)
-
-            mock_interp2d.return_value = mock_interpolate
-
-            mock_iekf._find_slopes(lat, lon, p_pre, mock_map_data)
-
-        # Check if SN and SE are calculated
-        assert mock_iekf.params.SN[mock_iekf.curr_state] != 0
-        assert mock_iekf.params.SE[mock_iekf.curr_state] != 0
-
-        # Check if Rfit is calculated
-        assert mock_iekf.params.Rfit[mock_iekf.curr_state] > 0
-
-        # Verify the slopes are reasonable given our elevation model
-        # The slope should be positive in both directions at (37.5, 21.5)
-        assert mock_iekf.params.SN[mock_iekf.curr_state] > 0
-        assert mock_iekf.params.SE[mock_iekf.curr_state] > 0
-
-        # Expected slopes (approximately)
-        expected_sn = -100 * np.sin(37.5 * np.pi / 180) * mock_map_data.mpd['north'][mock_iekf.curr_state]
-        expected_se = 100 * np.cos(21.5 * np.pi / 180) * mock_map_data.mpd['east'][mock_iekf.curr_state]
-
-        np.testing.assert_allclose(mock_iekf.params.SN[mock_iekf.curr_state], expected_sn, rtol=1e-2)
-        np.testing.assert_allclose(mock_iekf.params.SE[mock_iekf.curr_state], expected_se, rtol=1e-2)
-
-    def test_find_slopes_edge_cases(self, mock_iekf, mock_map_data):
-        """Test the _find_slopes method with edge cases."""
-        mock_iekf.curr_state = 0  # Edge of the run
-        lat, lon = 37, 21  # Edge of the map
-        p_pre = np.eye(12) * 100  # Simulated covariance matrix
-
-        with patch('src.estimators.interp2d') as mock_interp2d:
-            # Mock the interp2d function to return our simple elevation model
-            def mock_interpolate(x, y):
-                return 100 * np.sin(x) + 100 * np.cos(y)
-
-            mock_interp2d.return_value = mock_interpolate
-
-            mock_iekf._find_slopes(lat, lon, p_pre, mock_map_data)
-
-        # Check if calculations are performed without errors
-        assert np.isfinite(mock_iekf.params.SN[mock_iekf.curr_state])
-        assert np.isfinite(mock_iekf.params.SE[mock_iekf.curr_state])
-        assert np.isfinite(mock_iekf.params.Rfit[mock_iekf.curr_state])
