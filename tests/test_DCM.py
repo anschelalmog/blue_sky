@@ -1,9 +1,10 @@
 import pytest
+import unittest
 from numpy import array, allclose, eye
 from src.utils import DCM
 
 
-class TestDCM:
+class TestDCM(unittest.TestCase):
     @pytest.mark.parametrize(
         "direction, expected_dcm", [
             ("north", array([1, 0, 0])),
