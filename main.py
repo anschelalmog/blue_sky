@@ -11,7 +11,7 @@ if __name__ == '__main__':
     # errors.set_imu_error('barometer', amplitude=200, drift=0, bias=0)
 
     # Load the map data using the provided settings
-    map_data = Map().load(args, mock=True)
+    map_data = Map().load(args, mock=False)
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
