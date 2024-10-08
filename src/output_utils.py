@@ -177,7 +177,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_title('North Position Error [m]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[0].legend(['Error', r'$\pm\sigma$'], loc='upper right')
 
         # Add error metrics as text on the North Position subplot
         rmse_north = errors.metrics['pos']['north']['rmse']
@@ -195,7 +195,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].set_title('East Position Error [m]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Err', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[1].legend(['Error', r'+$\pm\sigma$'], loc='upper right')
 
         # Add error metrics as text on the East Position subplot
         rmse_east = errors.metrics['pos']['east']['rmse']
@@ -223,7 +223,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_title('North Velocity Error [m/s]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[0].legend(['Error', r'$\pm\sigma$'], loc='upper right')
 
         # Error in East Velocity
         axs[1].plot(args.time_vec, errors.vel.east, '-r', linewidth=1)
@@ -232,7 +232,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].set_title('East Velocity Error [m/s]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[1].legend(['Error', r'$\pm\sigma$'], loc='upper right')
 
         # Error in Down Velocity
         axs[2].plot(args.time_vec, errors.vel.down, '-r', linewidth=1)
@@ -241,7 +241,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[2].set_title('Down Velocity Error [m/s]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
-        axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[2].legend(['Error', r'$\pm\sigma$'], loc='upper right')
 
         plt.tight_layout()
 
@@ -276,7 +276,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         plt.title('Altitude Err [m]')
         plt.xlabel('Time [sec]')
         plt.grid(True)
-        plt.legend(['Error', r'+$\sigma$', r'-$\sigma$', 'mean', 'Z'], loc='best')
+        plt.legend(['Error', r'$\pm\sigma$', 'mean', 'Z'], loc='upper right')
 
         # save fig
         plt.savefig(os.path.join(args.results_folder, f'{title}.png'))
@@ -296,7 +296,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[0].set_title(r'Euler $\psi$ - yaw Error [deg]')
         axs[0].set_xlabel('Time [sec]')
         axs[0].grid(True)
-        axs[0].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[0].legend(['Error', r'+$\pm\sigma$'], loc='upper right')
 
         # Add error metrics as text on the Euler Psi subplot
         rmse_psi = errors.metrics['euler']['psi']['rmse']
@@ -314,7 +314,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[1].set_title(r'Euler $\theta$ - pitch Error [deg]')
         axs[1].set_xlabel('Time [sec]')
         axs[1].grid(True)
-        axs[1].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[1].legend(['Error', r'$\pm\sigma$'], loc='upper right')
 
         # Add error metrics as text on the Euler Theta subplot
         rmse_theta = errors.metrics['euler']['theta']['rmse']
@@ -332,7 +332,7 @@ def plot_results(args, map_data, ground_truth, measurements, estimation_results,
         axs[2].set_title(r'Euler $\phi$ - roll Error [deg]')
         axs[2].set_xlabel('Time [sec]')
         axs[2].grid(True)
-        axs[2].legend(['Error', r'+$\sigma$', r'-$\sigma$'], loc='best')
+        axs[2].legend(['Error', r'$\pm\sigma$'], loc='upper right')
 
         # Add error metrics as text on the Euler Phi subplot
         rmse_phi = errors.metrics['euler']['phi']['rmse']

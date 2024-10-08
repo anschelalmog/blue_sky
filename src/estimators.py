@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import interp2d
+from scipy.interpolate import RegularGridInterpolator
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from icecream import ic
@@ -74,7 +74,8 @@ class IEKF:
 
         time.sleep(0.01)
         desc = "Estimating Trajectory with IEKF"
-        for i in tqdm(range(1, self.run_points), desc=desc):
+        # for i in
+        for i in progress_bar(self.run_points, desc):
             self.curr_state = i
 
             "-Prediction step"
@@ -91,7 +92,9 @@ class IEKF:
                 h_asl_meas = self.traj.pos.h_asl[i]  # meas.pos.h_asl[i]
                 jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
                 h_agl_meas = meas.pinpoint.range[i] * jac
-                h_map_meas = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(lon, lat)
+
+                h_map_meas_interp = RegularGridInterpolator((map_data.axis['lat'], map_data.axis['lon']), map_data.grid)
+                h_map_meas = h_map_meas_interp((lat, lon))
                 self.traj.pos.h_agl[i] = h_agl_meas
 
                 self.params.H[:3, i] = [-self.params.SN[i], -self.params.SE[i], -1]  # Update observation matrix
@@ -233,10 +236,9 @@ class IEKF:
         lat = self.traj.pos.lat[i] + self.traj.pinpoint.delta_north[i] / meas.mpd_north[i]
         lon = self.traj.pos.lon[i] + self.traj.pinpoint.delta_east[i] / meas.mpd_east[i]
 
-        lat, lon = meas.pos.lat[i], meas.pos.lat[i]
+        lat, lon = meas.pos.lat[i], meas.pos.lon[i]
 
         return lat, lon
-
 
     def _find_slopes(self, lat, lon, p_pre, map_data):
         """
@@ -263,15 +265,14 @@ class IEKF:
         pos_offset = np.arange(-idx, idx + 1)
         lat_vec, lon_vec = delPmap[0] * pos_offset + lat, delPmap[0] * pos_offset + lon
         xp, yp = np.meshgrid(lon_vec, lat_vec)
-        xp, yp = xp[0, :], yp[:, 0]
         # scaling factors for slope calc
         sx2 = (dP ** 2) * 2 * NC * np.sum(np.power(np.arange(1, idx + 1), 2))
         sy2 = sx2
 
         # interpolate elevation data for current location
-        interpolator = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)
-        ref_elevation = interpolator(lon, lat)[0]
-        grid_elevations = interpolator(xp, yp)
+        interpolator = RegularGridInterpolator((map_data.axis['lat'], map_data.axis['lon']), map_data.grid)
+        ref_elevation = interpolator((lat, lon))
+        grid_elevations = interpolator((yp, xp))
 
         # calculate slopes in x and y directions
         syh = dP * np.dot(pos_offset, grid_elevations - ref_elevation).sum()
@@ -421,7 +422,7 @@ class UKF:
             h_asl_meas = meas.pos.h_asl[i]
             jac = cosd(meas.euler.theta[i]) * cosd(meas.euler.phi[i])
             h_agl_meas = meas.pinpoint.range[i] * jac
-            h_map_meas = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(lon, lat)
+            h_map_meas = RegularGridInterpolator(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(lon, lat)
             self.traj.pos.h_agl[i] = h_agl_meas
 
             self._calc_rc(h_agl_meas)
@@ -516,8 +517,9 @@ class UKF:
         for j in range(2 * self.state_size + 1):
             jac = cosd(X_sigma_pred[10, j]) * cosd(X_sigma_pred[11, j])
             h_agl_pred = self.traj.pinpoint.range[i] * jac
-            h_map_pred = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(X_sigma_pred[1, j],
-                                                                                             X_sigma_pred[0, j])
+            h_map_pred = RegularGridInterpolator(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)(
+                X_sigma_pred[1, j],
+                X_sigma_pred[0, j])
             Z_sigma[0, j] = X_sigma_pred[2, j] - h_agl_pred - h_map_pred
         return Z_sigma
 
@@ -602,7 +604,7 @@ class UKF:
         sy2 = sx2
 
         # interpolate elevation data for current location
-        interpolator = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)
+        interpolator = RegularGridInterpolator(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)
         ref_elevation = interpolator(lon, lat)[0]
         grid_elevations = interpolator(xp, yp)
 

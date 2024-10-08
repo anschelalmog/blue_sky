@@ -1,3 +1,5 @@
+from pickle import TUPLE, FALSE
+
 from src.data_loaders import *
 from src.create_traj import *
 from src.noise_traj import *
@@ -14,7 +16,7 @@ if __name__ == '__main__':
 
     # Load the map data using the provided settings
     # Create the map class with the elevation data
-    map_data = Map().load(args)
+    map_data = Map().load(args, mock=True)
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)

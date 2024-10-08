@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# import pyulog
+import pyulog
 import scipy.io as sp
 import os
 import argparse
