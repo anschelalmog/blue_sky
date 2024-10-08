@@ -1,5 +1,3 @@
-from pickle import TUPLE, FALSE
-
 from src.data_loaders import *
 from src.create_traj import *
 from src.noise_traj import *
