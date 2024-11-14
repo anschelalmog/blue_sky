@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # Load the map data using the provided settings
     # Create the map class with the elevation data
-    map_data = Map().load(args, mock=True)
+    map_data = Map().load(args, mock=False)
 
     # Create the actual trajectory based on the map data and settings
     true_traj = CreateTraj(args).create(map_data)
