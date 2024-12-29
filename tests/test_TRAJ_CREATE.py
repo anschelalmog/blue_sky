@@ -5,9 +5,9 @@ import numpy as np
 from icecream import ic
 from scipy.interpolate import RegularGridInterpolator
 
-from src.create_traj import CreateTraj
-from src.utils import get_mpd
-from src.data_loaders import set_settings
+from BLUE_SKY.create_traj import CreateTraj
+from BLUE_SKY.utils import get_mpd
+from BLUE_SKY.data_loaders import set_settings
 
 
 class TestCreateTraj(unittest.TestCase):

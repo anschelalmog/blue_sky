@@ -1,7 +1,7 @@
 import pytest
 import unittest
 from numpy import array, allclose, eye
-from src.utils import DCM
+from BLUE_SKY.utils import DCM
 
 
 class TestDCM(unittest.TestCase):

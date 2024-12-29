@@ -4,11 +4,11 @@ import unittest
 from unittest.mock import MagicMock, patch
 from argparse import Namespace
 
-from src.data_loaders import *
-from src.create_traj import *
-from src.noise_traj import *
-from src.output_utils import *
-from src.estimators import IEKF, IEKFParams
+from BLUE_SKY.data_loaders import *
+from BLUE_SKY.create_traj import *
+from BLUE_SKY.noise_traj import *
+from BLUE_SKY.output_utils import *
+from BLUE_SKY.estimators import IEKF, IEKFParams
 
 
 class TestIEKF:
@@ -41,83 +41,6 @@ class TestIEKF:
         iekf.params.SE = np.zeros(args.run_points)
         iekf.params.Rfit = np.zeros(args.run_points)
         return iekf
-
-    @pytest.fixture
-    def mock_wavy_data(self):
-        """Create a mock map data structure with vector mpd values."""
-        map_data = MagicMock()
-        map_data.axis = {
-            'lat': np.linspace(37, 38, 101),
-            'lon': np.linspace(21, 22, 101)
-        }
-        # Create vector mpd values
-        map_data.mpd = {
-            'north': np.linspace(110000, 112000, 100),  # Varying slightly around 111 km/deg
-            'east': np.linspace(84000, 86000, 100)  # Varying slightly around 85 km/deg
-        }
-
-        # Create a simple elevation model for testing
-        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
-        map_data.grid = 100 * np.sin(x) + 100 * np.cos(y)
-
-        return map_data
-
-    @pytest.fixture
-    def mock_flat_map(self):
-        map_data = MagicMock()
-        map_data.axis = {
-            'lat': np.linspace(37, 38, 101),
-            'lon': np.linspace(21, 22, 101)
-        }
-        map_data.mpd = {
-            'north': np.linspace(110000, 112000, 100),
-            'east': np.linspace(84000, 86000, 100)
-        }
-        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
-        map_data.grid = np.full_like(x, 1000)  # Constant elevation of 1000m
-        return map_data
-
-    @pytest.fixture
-    def mock_linear_map(self):
-        map_data = MagicMock()
-        map_data.axis = {
-            'lat': np.linspace(37, 38, 101),
-            'lon': np.linspace(21, 22, 101)
-        }
-        map_data.mpd = {
-            'north': np.linspace(110000, 112000, 100),
-            'east': np.linspace(84000, 86000, 100)
-        }
-        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
-
-        # Create a linear slope:
-        # - Increasing from west to east (along longitude)
-        # - Decreasing from south to north (along latitude)
-        slope_lon = 500  # 500 meters per degree longitude
-        slope_lat = -300  # -300 meters per degree latitude
-        base_elevation = 1000  # meters
-
-        map_data.grid = (base_elevation +
-                         slope_lon * (x - x.min()) +
-                         slope_lat * (y - y.min()))
-
-        return map_data
-
-    @pytest.fixture
-    def mock_complex_map(self):
-        map_data = MagicMock()
-        map_data.axis = {
-            'lat': np.linspace(37, 38, 101),
-            'lon': np.linspace(21, 22, 101)
-        }
-        map_data.mpd = {
-            'north': np.linspace(110000, 112000, 100),
-            'east': np.linspace(84000, 86000, 100)
-        }
-        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
-        # Complex terrain with valleys, peaks, and plateaus
-        map_data.grid = 1000 + 500 * np.sin(2 * x) * np.cos(2 * y) + 300 * np.abs(np.sin(5 * x) * np.cos(5 * y))
-        return map_data
 
     def run_iekf_setup_no_error(self, mock=True):
         """Helper method to run the setup steps for IEKF."""
@@ -265,3 +188,122 @@ class TestIEKF:
     ######################################
     "Testing _find_slopes() method"      #
     ######################################
+
+    def test_find_slopes(self):
+        """
+        Test _find_slopes method with different map types.
+        First test with no error and expect exact values,
+        then with error and expect minimal values.
+        """
+        mock_maps = Mock_Maps()
+
+        # Test parameters
+        lat, lon = 37.5, 21.5
+        p_pre = np.eye(12) * 100
+        i = 50  # Assuming this is the current state
+
+        expected_values = {
+            'flat_map': {'SN': 0, 'SE': 0, 'Rfit': 0},
+            'linear_map': {'SN': -0.0027, 'SE': 0.0059, 'Rfit': 0},
+            'wavy_map': {'SN': -0.87, 'SE': 0.94, 'Rfit': 100},
+            'complex_map': {'SN': -1.74, 'SE': 1.88, 'Rfit': 1000}
+        }
+
+        for map_name, map_data in mock_maps.__dict__.items():
+            if not map_name.endswith('_map'):
+                continue
+
+            with patch('scipy.interpolate.interp2d') as mock_interp2d:
+                def mock_interpolate(x, y):
+                    return np.array([map_data.grid[int((y - 37) * 100), int((x - 21) * 100)]])
+
+                mock_interp2d.return_value = mock_interpolate
+
+                # Calculate slopes
+                SN, SE, Rfit = self._calculate_slopes(lat, lon, p_pre, map_data, i)
+
+                # Assert values
+                np.testing.assert_allclose(SN, expected_values[map_name]['SN'], rtol=1e-2,
+                                           err_msg=f"SN mismatch for {map_name}")
+                np.testing.assert_allclose(SE, expected_values[map_name]['SE'], rtol=1e-2,
+                                           err_msg=f"SE mismatch for {map_name}")
+                assert Rfit >= expected_values[map_name]['Rfit'], f"Rfit too small for {map_name}"
+
+    def _calculate_slopes(self, lat, lon, p_pre, map_data, i):
+        dP = 100  # distance increments in [m]
+        delPmap = np.array([dP / map_data.mpd['north'][i], dP / map_data.mpd['east'][i]])  # [deg]
+
+        # max number of points in each direction
+        maxP = np.sqrt(max(p_pre[0][0], p_pre[1][1]))
+        KP = 3
+        NC = np.ceil(max(KP, 2 * np.ceil(KP * maxP / dP) + 1) / 2)
+        idx = int((NC - 1) / 2)  # indices
+
+        # create lat lon vectors according to grid indices
+        pos_offset = np.arange(-idx, idx + 1)
+        lat_vec, lon_vec = delPmap[0] * pos_offset + lat, delPmap[1] * pos_offset + lon
+        xp, yp = np.meshgrid(lon_vec, lat_vec)
+        xp, yp = xp[0, :], yp[:, 0]
+
+        # scaling factors for slope calc
+        sx2 = sy2 = (dP ** 2) * 2 * NC * np.sum(np.power(np.arange(1, idx + 1), 2))
+
+        # interpolate elevation data
+        interpolator = interp2d(map_data.axis['lon'], map_data.axis['lat'], map_data.grid)
+        ref_elevation = float(interpolator(lon, lat))
+        grid_elevations = interpolator(xp, yp)
+
+        # calculate slopes in x and y directions
+        syh = dP * np.dot(pos_offset, grid_elevations - ref_elevation).sum()
+        sxh = dP * np.dot(grid_elevations - ref_elevation, pos_offset).sum()
+
+        SN, SE = sxh / sx2, syh / sy2
+
+        # calculate the Error over the grid
+        MP = (2 * idx + 1) ** 2  # number of points in the mesh grid
+        In = np.sum((dP * (SN * pos_offset[:, np.newaxis] + SE * pos_offset) -
+                     grid_elevations + ref_elevation) ** 2)
+        Rfit = In / (MP - 1)
+
+        return SN, SE, Rfit
+
+
+class Mock_Maps:
+    def __init__(self):
+        self.flat_map = self._create_map(self._flat_grid)
+        self.linear_map = self._create_map(self._linear_grid)
+        self.wavy_map = self._create_map(self._wavy_grid)
+        self.complex_map = self._create_map(self._complex_grid)
+
+    def _create_map(self, grid_func):
+        map_data = MagicMock()
+        map_data.axis = {
+            'lat': np.linspace(37, 38, 101),
+            'lon': np.linspace(21, 22, 101)
+        }
+        map_data.mpd = {
+            'north': np.linspace(110000, 112000, 100),
+            'east': np.linspace(84000, 86000, 100)
+        }
+        x, y = np.meshgrid(map_data.axis['lon'], map_data.axis['lat'])
+        map_data.grid = grid_func(x, y)
+        return map_data
+
+    @staticmethod
+    def _flat_grid(x, y):
+        return np.full_like(x, 1000)  # Constant elevation of 1000m
+
+    @staticmethod
+    def _linear_grid(x, y):
+        slope_lon = 500  # 500 meters per degree longitude
+        slope_lat = -300  # -300 meters per degree latitude
+        base_elevation = 1000  # meters
+        return base_elevation + slope_lon * (x - x.min()) + slope_lat * (y - y.min())
+
+    @staticmethod
+    def _wavy_grid(x, y):
+        return 1000 + 100 * np.sin(5*x) + 100 * np.cos(5*y)
+
+    @staticmethod
+    def _complex_grid(x, y):
+        return 1000 + 500 * np.sin(2*x) * np.cos(2*y) + 300 * np.abs(np.sin(5*x) * np.cos(5*y))

@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 from unittest.mock import Mock
-from src.noise_traj import NoiseTraj
-from src.create_traj import CreateTraj
+from BLUE_SKY.noise_traj import NoiseTraj
+from BLUE_SKY.create_traj import CreateTraj
 import unittest
 
 class TestNoiseTraj(unittest.TestCase):
