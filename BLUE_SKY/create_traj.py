@@ -257,3 +257,5 @@ class CreateTraj(BaseTraj):
         plt.savefig(f'{title}.png')
 
         plt.show()
+
+# push file to git
