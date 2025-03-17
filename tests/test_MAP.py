@@ -3,7 +3,7 @@ import numpy as np
 import tempfile
 import unittest
 from unittest.mock import patch, MagicMock, ANY
-from BLUE_SKY.data_loaders import Map
+from archive.archive_2.data_loaders import Map
 
 """ 
 |-------------------------------------------------|

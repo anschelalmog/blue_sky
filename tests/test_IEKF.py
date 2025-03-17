@@ -1,14 +1,9 @@
 import pytest
-import numpy as np
-import unittest
 from unittest.mock import MagicMock, patch
 from argparse import Namespace
 
-from BLUE_SKY.data_loaders import *
-from BLUE_SKY.create_traj import *
-from BLUE_SKY.noise_traj import *
-from BLUE_SKY.output_utils import *
-from BLUE_SKY.estimators import IEKF, IEKFParams
+from archive.archive_2 import *
+from archive.archive_2.estimators import IEKF
 
 
 class TestIEKF:

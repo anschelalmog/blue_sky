@@ -1,11 +1,9 @@
 import pytest
 import unittest
 import numpy as np
-import matplotlib.pyplot as plt
-from BLUE_SKY.pinpoint_calc import PinPoint
-from BLUE_SKY.create_traj import CreateTraj
-from BLUE_SKY.data_loaders import Map
-from BLUE_SKY.utils import cosd, sind
+from archive.archive_2.pinpoint_calc import PinPoint
+from archive.archive_2 import CreateTraj
+from archive.archive_2.data_loaders import Map
 
 
 class TestPinPoint(unittest.TestCase):
