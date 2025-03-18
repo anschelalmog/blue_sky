@@ -17,7 +17,8 @@ def plot_trajectory(traj, map_data, output_folder='out', save=False):
         matplotlib.figure.Figure: The figure
     """
     title = 'Trajectory Visualization'
-    fig, title = setup_figure(title, figsize=(16, 8))
+    fig = plt.figure(figsize=(16, 8))
+    fig.suptitle(title, fontsize=16)
 
     # 2D Plot as the first subplot
     ax1 = fig.add_subplot(211)
@@ -45,7 +46,6 @@ def plot_trajectory(traj, map_data, output_folder='out', save=False):
         save_figure(fig, title, output_folder)
 
     return fig
-
 
 def plot_velocity(traj, output_folder='out', save=False):
     """
